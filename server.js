@@ -709,33 +709,33 @@ client.on("messageCreate", async msg => {
     );
   */
   
-  if (
-    msg.channel.id === '871456134714765332' &&
-    msg.author.id !== '976230729295999006' &&
-    msg.embeds &&
-    msg.embeds[0] &&
-    msg.embeds[0].title
-  ) {
-    msg.delete();
+  // if (
+  //   msg.channel.id === '871456134714765332' &&
+  //   msg.author.id !== '976230729295999006' &&
+  //   msg.embeds &&
+  //   msg.embeds[0] &&
+  //   msg.embeds[0].title
+  // ) {
+  //   msg.delete();
 
-    const oldE = msg.embeds[0];
-    const UID = oldE.title;
+  //   const oldE = msg.embeds[0];
+  //   const UID = oldE.title;
 
-    const newEmbed = new MessageEmbed(oldE)
-      .setTitle('')
-      .setColor(16753920)
-      .setDescription(oldE.description + "\n\nThis account seems to be an **AltGen**, would you like to ban them?");
+  //   const newEmbed = new MessageEmbed(oldE)
+  //     .setTitle('')
+  //     .setColor(16753920)
+  //     .setDescription(oldE.description + "\n\nThis account seems to be an **AltGen**, would you like to ban them?");
 
-    const row = new MessageActionRow().addComponents(
-      new MessageButton().setCustomId(UID).setLabel('Yes').setStyle('PRIMARY'),
-      new MessageButton().setCustomId("0").setLabel('No').setStyle('DANGER')
-    );
+  //   const row = new MessageActionRow().addComponents(
+  //     new MessageButton().setCustomId(UID).setLabel('Yes').setStyle('PRIMARY'),
+  //     new MessageButton().setCustomId("0").setLabel('No').setStyle('DANGER')
+  //   );
 
-    client.channels.cache.get(msg.channel.id).send({
-      embeds: [newEmbed],
-      components: [row]
-    });
-  }
+  //   client.channels.cache.get(msg.channel.id).send({
+  //     embeds: [newEmbed],
+  //     components: [row]
+  //   });
+  // }
     
 	if (msg.author.bot) return;
   const args = msg.content.split(" ");
