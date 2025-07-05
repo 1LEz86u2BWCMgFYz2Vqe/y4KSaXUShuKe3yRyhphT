@@ -723,7 +723,7 @@ client.on("messageCreate", async msg => {
 
     const newEmbed = new MessageEmbed(oldE)
       .setTitle('')
-      .setColor('16753920')
+      .setColor(16753920)
       .setDescription(oldE.description + "\n\nThis account seems to be an **AltGen**, would you like to ban them?");
 
     const row = new MessageActionRow().addComponents(
