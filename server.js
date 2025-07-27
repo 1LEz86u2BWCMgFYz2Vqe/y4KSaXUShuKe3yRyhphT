@@ -733,19 +733,16 @@ async function determineType(action, message, args) {
     }
 }
 
-const PostResp = async (msg, str) => {
-    //if(true) return;
+const PostResp = async(msg, str) => {
     let info = msg.split(" ");
-    let cacheMsg = await client.channels.cache.get(info[0]).messages.fetch(info[1]).catch(e => e);
+    let cacheMsg = await client.channels.cache
+    .get(info[0])
+    ?.messages.fetch(info[1])
+    .catch(() => null);
+
     if (!cacheMsg) return;
+
     const newEmbed = new EmbedBuilder(cacheMsg.embeds[0].data);
-    if (info[1] === "1125177453015466075") {
-        newEmbed.setTitle(`Server browser`)
-        newEmbed.setTimestamp()
-    }
-
-    console.log(str);
-
     newEmbed.setDescription(str);
     cacheMsg.edit({
         embeds: [newEmbed]
