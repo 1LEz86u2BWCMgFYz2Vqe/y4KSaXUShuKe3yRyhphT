@@ -1,37 +1,32 @@
 require('dotenv').config();
 
-const express = require("express");
-const https = require("https");
-const app = express();
+const express = require('express');
 const axios = require('axios');
-
 const {
-    Discord,
-    Client,
-    EmbedBuilder, //newname//MessageEmbed,
-    MessageEmbed,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    Intents,
-    MessageAttachment
-} = require("discord.js");
-const {
-    REST
-} = require('@discordjs/rest');
-const {
-    Routes
-} = require('discord-api-types/v9');
+	Client,
+	GatewayIntentBits,
+	Partials,
+	EmbedBuilder,
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	AttachmentBuilder,
+	ActivityType
+} = require('discord.js');
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v10');
+const app = express();
 const client = new Client({
-    intents: [
-        Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES,
-        Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-        Intents.FLAGS.GUILD_MEMBERS
-    ],
-    partials: ['MESSAGE', 'CHANNEL', 'REACTION']
-})
-let token = process.env.SECRET;
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.GuildMembers,
+	],
+	partials: [Partials.Message, Partials.Channel, Partials.Reaction],
+});
+
+const token = process.env.SECRET;
 const rest = new REST({
     version: '10'
 }).setToken(token);
@@ -151,7 +146,7 @@ const commands = [{
         description: 'Get information about the game.',
         func: (msg) => {
             let gInfos = wlGuilds[msg.guild.id];
-            const e = new MessageEmbed()
+            const e = new EmbedBuilder()
                 .setTitle(gInfos.Name)
             axios.all([axios.get(`https://games.roblox.com/v1/games?universeIds=${gInfos.UID}`),
                     axios.get(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${gInfos.UID}&size=512x512&format=Png&isCircular=false`),
@@ -221,11 +216,8 @@ const wlGuilds = {
 client.on("ready", () => {
     console.log("Successfully logged in Discord bot.");
     client.user.setPresence({
-        activity: {
-            name: 'ROBLOX',
-            type: 'PLAYING'
-        },
-        status: 'online', //online,idle,dnd,invisible
+        activities: [{ name: 'ROBLOX', type: ActivityType.Playing }],
+        status: 'online',
     });
     updateUL();
     //client.guilds.cache.get('1087490916341792768').leave();
@@ -252,7 +244,7 @@ client.on("ready", () => {
         }
 
 
-        //client.channels.cache.get('995881487348023376').send({content: 'test',embeds: [new MessageEmbed().setDescription("test")]});
+        //client.channels.cache.get('995881487348023376').send({content: 'test',embeds: [new EmbedBuilder().setDescription("test")]});
 
     };
 
@@ -270,7 +262,7 @@ client.on("ready", () => {
                     return true
                 }
 
-                const e = new MessageEmbed()
+                const e = new EmbedBuilder()
                     .setDescription("Waiting for server...")
                     .setColor('#5865f2')
 
@@ -295,9 +287,9 @@ client.on("ready", () => {
             const cmd = interaction.commandName.toLowerCase();
             const args = interaction.options;
             client.channels.cache.get('975495174413242378').send({
-                embeds: [new MessageEmbed().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments"+JSON.stringify(args._hoistedOptions) : "" }`)]
+                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments"+JSON.stringify(args._hoistedOptions) : "" }`)]
             })
-            const sEmbed = new MessageEmbed()
+            const sEmbed = new EmbedBuilder()
                 .setDescription("Waiting for server...")
                 .setColor('#5865f2')
             if (cmd === 'info') {
@@ -397,7 +389,7 @@ client.on("ready", () => {
 });
 
 const PlrCmd = async (interaction, plr, res) => {
-    const e = new MessageEmbed()
+    const e = new EmbedBuilder()
         .setDescription("Waiting for server...")
         .setColor('#5865f2')
     const cmd = interaction.commandName;
@@ -420,7 +412,7 @@ const PlrCmd = async (interaction, plr, res) => {
                 .setCustomId('no')
                 .setLabel('No')
                 .setStyle(ButtonStyle.Secondary)
-                .setStyle(4)
+                .setStyle(ButtonStyle.Danger)
             );
         const filter = (i) => {
             return i.user.id === interaction.user.id && i.message.interaction.id === interaction.id
@@ -451,7 +443,7 @@ const PlrCmd = async (interaction, plr, res) => {
 
         interaction.reply({
             content: "Is this a UserId?",
-            embeds: [new MessageEmbed().setDescription(plr)],
+            embeds: [new EmbedBuilder().setDescription(plr)],
             components: [row]
         })
     }
@@ -482,7 +474,7 @@ const PostToServer = async (msg, content, toPost) => {
             const newDesc = newEmbed?.description;
 
             if (oldDesc === newDesc) {
-                const failedEmbed = new MessageEmbed(embed)
+                const failedEmbed = new EmbedBuilder(embed)
                     .setDescription(`PostAsync failed (No response from [BSPNP](https://www.roblox.com/games/${gameId}))`);
 
                 if (msg.type !== 19) {
@@ -578,7 +570,7 @@ const setUser = async (action, user, param, plrMsg) => {
     let editFunc = plrMsg.type === 19 ? "edit" : "editReply"
     let modId = plrMsg.type === 19 ? plrMsg.mentions.repliedUser.id : plrMsg.user.id
     const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`
-    const embedCheck = new MessageEmbed()
+    const embedCheck = new EmbedBuilder()
         .setColor('#5865f2')
         .setDescription('Waiting for server')
         .setTitle(plr.Name)
@@ -603,7 +595,7 @@ const setUser = async (action, user, param, plrMsg) => {
             let profileData = profile.data;
             const username = profileData.name;
             if (profileData.isBanned) {
-                const e = new MessageEmbed(msg.embeds[0].data);
+                const e = new EmbedBuilder(msg.embeds[0].data);
                 e.setDescription(`User is terminated from Roblox`);
                 plrMsg[editFunc]({
                     embeds: [e]
@@ -635,7 +627,7 @@ const setUser = async (action, user, param, plrMsg) => {
 
 async function determineType(action, message, args) {
     if (action === 'help') {
-        const e = new MessageEmbed()
+        const e = new EmbedBuilder()
             .setTitle('List of commands')
             .setColor('#5865f2')
             .setDescription('**!servers** - Get a list of all the servers\n**!server** [id] - Get information about a server\n**!check** [plr] - Get information about a player\n**!ban** [plr] [time/reason] - Ban a player\n**!unban** [plr] - Unban a player\n**!kick** [plr] - Kick a player')
@@ -648,7 +640,7 @@ async function determineType(action, message, args) {
         return
     } else if (action === 'chat') {
         const sid = args[1];
-        const e = new MessageEmbed()
+        const e = new EmbedBuilder()
             .setTitle(`Server: ${sid}`)
             .setColor('#5865f2')
             .setDescription('Waiting for server')
@@ -667,7 +659,7 @@ async function determineType(action, message, args) {
         })
         return
     } else if (action === 'servers') {
-        const e = new MessageEmbed()
+        const e = new EmbedBuilder()
             .setTitle('List of servers')
             .setDescription('Waiting for server')
         let m = await message.reply({
@@ -685,7 +677,7 @@ async function determineType(action, message, args) {
     if (action === 'server') {
         const sid = args[1];
         const getLogs = args[2];
-        const e = new MessageEmbed()
+        const e = new EmbedBuilder()
             .setTitle(`Server: ${sid}`)
             .setColor('#5865f2')
             .setDescription('Waiting for server')
@@ -700,7 +692,7 @@ async function determineType(action, message, args) {
         })
         return;
     }
-    const e = new MessageEmbed()
+    const e = new EmbedBuilder()
         .setColor('#5865f2')
         .setDescription("Waiting for server...")
     let botMsg = await message.reply({
@@ -746,7 +738,7 @@ const PostResp = async (msg, str) => {
     let info = msg.split(" ");
     let cacheMsg = await client.channels.cache.get(info[0]).messages.fetch(info[1]).catch(e => e);
     if (!cacheMsg) return;
-    const newEmbed = new MessageEmbed(cacheMsg.embeds[0].data);
+    const newEmbed = new EmbedBuilder(cacheMsg.embeds[0].data);
     if (info[1] === "1125177453015466075") {
         newEmbed.setTitle(`Server browser`)
         newEmbed.setTimestamp()
@@ -763,53 +755,16 @@ const PostResp = async (msg, str) => {
 client.on("guildMemberAdd", member => {
     client.channels.cache.get('978385449045360731').send({
         content: `Welcome to my discord server <@${member.id}>. Please read the following embed.`,
-        embeds: [new MessageEmbed().setDescription("You need to be verified in order to use commands and to be able to see other channels. If you'd like to be manually verified, please ping <@424224076404359189>.")]
+        embeds: [new EmbedBuilder().setDescription("You need to be verified in order to use commands and to be able to see other channels. If you'd like to be manually verified, please ping <@424224076404359189>.")]
     });
 });
 
 client.on("messageCreate", async msg => {
-
-
-    /*nuke
-    let guild = await client.guilds.cache.get('server-id');
-    guild.members
-      .fetch()
-      .then((members) =>
-        members.forEach((member) => member.kickable ? member.kick() : console.log(member.user.username))
-      );
-    */
-
-    // if (
-    //   msg.channel.id === '871456134714765332' &&
-    //   msg.author.id !== '976230729295999006' &&
-    //   msg.embeds &&
-    //   msg.embeds[0] &&
-    //   msg.embeds[0].title
-    // ) {
-    //   msg.delete();
-
-    //   const oldE = msg.embeds[0];
-    //   const UID = oldE.title;
-
-    //   const newEmbed = new MessageEmbed(oldE)
-    //     .setTitle('')
-    //     .setColor(16753920)
-    //     .setDescription(oldE.description + "\n\nThis account seems to be an **AltGen**, would you like to ban them?");
-
-    //   const row = new MessageActionRow().addComponents(
-    //     new MessageButton().setCustomId(UID).setLabel('Yes').setStyle('PRIMARY'),
-    //     new MessageButton().setCustomId("0").setLabel('No').setStyle('DANGER')
-    //   );
-
-    //   client.channels.cache.get(msg.channel.id).send({
-    //     embeds: [newEmbed],
-    //     components: [row]
-    //   });
-    // }
-
     if (msg.author.bot) return;
+
     const args = msg.content.split(" ");
     const cmd = args[0].substring(1);
+
     if (msg.content.startsWith(prefix) && FoundCmd(cmd)) {
         if (msg.author.id === '259085441448280064') { //msg.member.roles.cache.has('879382602576986162')){ 
             determineType(cmd.toLowerCase(), msg, args)
@@ -817,12 +772,13 @@ client.on("messageCreate", async msg => {
             msg.reply("You don't have permission to use this command.");
         }
     }
-    if (msg.channel.id === '975494182355472434') {
+    
+    if (msg.channel.id === '1399028653890867272') {
         msg.react("✅");
         msg.react("❌");
     }
 
-    if (msg.channel.id === '975492551224213514') updateUL();
+    // if (msg.channel.id === '975492551224213514') updateUL();
 });
 
 app.use(express.static("public"));
@@ -851,12 +807,12 @@ app.post("/", async (req, res) => {
 
     if (body.type === 'response') {
         console.log("got response");
-        res.send('success');
+        res.send('Success');
         PostResp(body.msg, body.str);
     } else if (body.type === 'file') {
-        res.send('success');
+        res.send('Success');
         const buffer = Buffer.from(body.str);
-        const file = new MessageAttachment(buffer, `${body.title}.txt`);
+        const file = new AttachmentBuilder(buffer, { name: `${body.title}.txt` })
         let info = body.msg.split(" ");
         let msg = await client.channels.cache.get(info[0]).messages.fetch(info[1]).catch(e => e);
         if (!msg) return;
@@ -865,11 +821,11 @@ app.post("/", async (req, res) => {
         });
     } else if (body.type === 'postFile') {
         const buffer = Buffer.from(body.str);
-        const file = new MessageAttachment(buffer, `${body.title}.txt`);
+        const file = new AttachmentBuilder(buffer, { name: `${body.title}.txt` })
         client.channels.cache.get('1125133941423231116').send({
             files: [file]
         });
-        res.send('success');
+        res.send('Success');
     }
 });
 
