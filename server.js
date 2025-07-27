@@ -213,14 +213,59 @@ const wlGuilds = {
     },
 }
 
-client.on("ready", () => {
+const sendGameInfo = async() => {
+	try {
+		const fetchUniverseId = async(placeId) => {
+			const res = await axios.get(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`);
+			return res.data.universeId;
+		};
+
+		const getGameData = async(placeId) => {
+			const universeId = await fetchUniverseId(placeId);
+			const [gameInfo, votes, favs] = await Promise.all([
+				axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`),
+				axios.get(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`),
+				axios.get(`https://games.roblox.com/v1/games/${universeId}/favorites/count`)
+			]);
+
+			const info = gameInfo.data.data[0];
+			const voteData = votes.data.data[0];
+
+			const likes = voteData.upVotes;
+			const dislikes = voteData.downVotes;
+			const total = likes + dislikes;
+			const ratio = total > 0 ? (likes / total * 100).toFixed(2) : "0.00";
+
+			return {
+				name: info.name,
+				link: `https://www.roblox.com/games/${placeId}`,
+				ratio,
+				favorites: favs.data.favoritesCount
+			};
+		};
+
+		const data = await getGameData(process.env.PLACEID);
+		const channel = await client.channels.fetch('1399038762855563444');
+		const embed = new EmbedBuilder()
+			.setTitle(data.name)
+			.setURL(data.link)
+			.setDescription(
+				`⭐ **${data.favorites}**\n👍 **${data.ratio}%**`
+			);
+
+		await channel.send({ embeds: [embed] });
+	} catch (err) {
+		console.error("Failed to send game info:", err.message);
+	}
+};
+
+client.on("ready", async() => {
     console.log("Successfully logged in Discord bot.");
     client.user.setPresence({
         activities: [{ name: 'ROBLOX', type: ActivityType.Playing }],
         status: 'online',
     });
-    updateUL();
-    //client.guilds.cache.get('1087490916341792768').leave();
+
     let botId = '1070340757497577563';
     const Guilds = client.guilds.cache.map(guild => guild.id);
     for (const [key, value] of Object.entries(Guilds)) {
@@ -242,14 +287,12 @@ client.on("ready", () => {
 
 
         }
-
-
-        //client.channels.cache.get('995881487348023376').send({content: 'test',embeds: [new EmbedBuilder().setDescription("test")]});
-
     };
 
+    await sendGameInfo();
+	setInterval(sendGameInfo, 60*60*1e3);
     client.on('interactionCreate', async interaction => {
-        if (interaction.member.id === '259085441448280064') { //.roles.cache.has('879382602576986162')){
+        if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
 
 
