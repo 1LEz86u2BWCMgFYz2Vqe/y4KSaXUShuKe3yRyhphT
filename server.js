@@ -297,6 +297,7 @@ client.on("ready", async() => {
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
+                await interaction.deferUpdate();
                 let gId = interaction.guild.id;
                 if (interaction.message.channel.id != 871456134714765332) return;
 
@@ -431,6 +432,8 @@ client.on("ready", async() => {
 });
 
 const PlrCmd = async (interaction, plr, res) => {
+    await interaction.deferReply();
+
     const e = new EmbedBuilder()
         .setDescription("Waiting for server...")
         .setColor('#5865f2')
@@ -598,14 +601,19 @@ const setUser = async(action, user, param, plrMsg) => {
         }
         const res = await axios(options);
         const data = res.data.data[0];
-        if (!data) {
-            await plrMsg.reply({ content: `User doesn't exist` });
+        if (!data){
+            await interaction.editReply({content: `User doesn't exist.`});
             return;
         }
         plr.Name = data.name;
         plr.Id = data.id;
     } else {
         const res = await axios.get(`https://users.roblox.com/v1/users/${user}`);
+        const msg = res && res.message;
+        if(msg){
+            await interaction.editReply({content: msg});
+            return;
+        }
         const data = res.data;
         plr.Name = data.name;
         plr.Id = data.id;
