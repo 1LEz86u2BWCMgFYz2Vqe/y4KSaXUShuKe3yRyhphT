@@ -602,11 +602,10 @@ const setUser = async(action, user, param, plrMsg) => {
             plr.Id = data.id;
         })
     } else {
-        await axios.get(`https://users.roblox.com/v1/users/${user}`).then(res => {
-            let data = res.data;
-            plr.Name = data.name
-            plr.Id = data.id
-        })
+        const res = await axios.get(`https://users.roblox.com/v1/users/${user}`);
+        const data = res.data;
+        plr.Name = data.name;
+        plr.Id = data.id;
     }
 
     let editFunc = plrMsg.type === 19 ? "edit" : "editReply"
