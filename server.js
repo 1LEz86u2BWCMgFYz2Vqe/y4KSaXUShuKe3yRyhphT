@@ -298,8 +298,6 @@ client.on("ready", async() => {
         if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
                 let gId = interaction.guild.id;
-                console.log(gId);
-
                 if (interaction.message.channel.id != 871456134714765332) return;
 
                 const filter = (i) => {
@@ -606,8 +604,8 @@ const setUser = async (action, user, param, plrMsg) => {
     } else {
         axios.get(`https://users.roblox.com/v1/users/${user}`).then(res => {
             let data = res.data;
-            plr.Name = data.Username
-            plr.Id = data.Id
+            plr.Name = data.name
+            plr.Id = data.id
         })
     }
 
@@ -795,7 +793,7 @@ const PostResp = async(msg, str) => {
 
 client.on("guildMemberAdd", member => {
     client.channels.cache.get('1141080028268998746').send({
-        content: `Welcome to my Discord server <@${member.id}>. Please read the following embed.`,
+        content: `Welcome to my Discord Server <@${member.id}>. Please read the following text to get started:`,
         embeds: [new EmbedBuilder().setDescription("You need to be verified (using RoVer or Bloxlink) in order to use commands and to be able to see other channels.")]
     });
 });
@@ -843,9 +841,6 @@ app.post("/", async (req, res) => {
             console.log(`Server with the IP ${ip} attempted to post something without the key`);
             return;
         }
-
-    console.log(body.type);
-
     if (body.type === 'response') {
         console.log("got response");
         res.send('Success');
