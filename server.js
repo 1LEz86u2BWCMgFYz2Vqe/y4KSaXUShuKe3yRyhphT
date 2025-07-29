@@ -577,7 +577,7 @@ function isEmpty(t) {
     return res;
 }
 
-const setUser = async (action, user, param, plrMsg) => {
+const setUser = async(action, user, param, plrMsg) => {
     let plr = {
         ["Name"]: "Player",
         ["Id"]: "1",
@@ -602,7 +602,7 @@ const setUser = async (action, user, param, plrMsg) => {
             plr.Id = data.id;
         })
     } else {
-        axios.get(`https://users.roblox.com/v1/users/${user}`).then(res => {
+        await axios.get(`https://users.roblox.com/v1/users/${user}`).then(res => {
             let data = res.data;
             plr.Name = data.name
             plr.Id = data.id
