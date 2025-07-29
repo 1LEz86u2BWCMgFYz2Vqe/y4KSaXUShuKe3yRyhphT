@@ -297,8 +297,6 @@ client.on("ready", async() => {
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
-
-
                 let gId = interaction.guild.id;
                 console.log(gId);
 
@@ -796,9 +794,9 @@ const PostResp = async(msg, str) => {
 };
 
 client.on("guildMemberAdd", member => {
-    client.channels.cache.get('978385449045360731').send({
-        content: `Welcome to my discord server <@${member.id}>. Please read the following embed.`,
-        embeds: [new EmbedBuilder().setDescription("You need to be verified in order to use commands and to be able to see other channels. If you'd like to be manually verified, please ping <@424224076404359189>.")]
+    client.channels.cache.get('1141080028268998746').send({
+        content: `Welcome to my Discord server <@${member.id}>. Please read the following embed.`,
+        embeds: [new EmbedBuilder().setDescription("You need to be verified (using RoVer or Bloxlink) in order to use commands and to be able to see other channels.")]
     });
 });
 
