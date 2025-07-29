@@ -252,7 +252,7 @@ const sendGameInfo = async() => {
 			.setTitle(data.name)
 			.setURL(data.link)
 			.setDescription(
-				`🌐 **${data.ccu}**\n⭐ **${data.favorites}**\n👍 **${data.ratio}%**`
+				`🌐 **${data.ccu} players**\n⭐ **${data.favorites}**\n👍 **${data.ratio}%**`
 			);
 
 		await channel.send({ embeds: [embed] });
