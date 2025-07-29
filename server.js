@@ -596,11 +596,14 @@ const setUser = async(action, user, param, plrMsg) => {
                 "excludeBannedUsers": false
             }
         }
-        await axios(options).then(res => {
-            let data = res.data.data[0];
-            plr.Name = data.name;
-            plr.Id = data.id;
-        })
+        const res = await axios(options);
+        const data = res.data.data[0];
+        if (!data) {
+            await plrMsg.reply({ content: `User doesn't exist` });
+            return;
+        }
+        plr.Name = data.name;
+        plr.Id = data.id;
     } else {
         const res = await axios.get(`https://users.roblox.com/v1/users/${user}`);
         const data = res.data;
