@@ -240,7 +240,9 @@ const sendGameInfo = async() => {
 				name: info.name,
 				link: `https://www.roblox.com/games/${placeId}`,
 				ratio,
-				favorites: favs.data.favoritesCount
+				favorites: favs.data.favoritesCount,
+                ccu: info.playing,
+                visits: info.visits,
 			};
 		};
 
@@ -250,7 +252,7 @@ const sendGameInfo = async() => {
 			.setTitle(data.name)
 			.setURL(data.link)
 			.setDescription(
-				`⭐ **${data.favorites}**\n👍 **${data.ratio}%**`
+				`🌐 **${data.ccu}**\n⭐ **${data.favorites}**\n👍 **${data.ratio}%**`
 			);
 
 		await channel.send({ embeds: [embed] });
@@ -290,7 +292,8 @@ client.on("ready", async() => {
     };
 
     await sendGameInfo();
-	setInterval(sendGameInfo, 60*60*1e3);
+    const updateT = 30;
+	setInterval(sendGameInfo, updateT*60*1e3);
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
