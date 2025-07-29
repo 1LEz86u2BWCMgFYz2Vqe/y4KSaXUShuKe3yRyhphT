@@ -297,7 +297,6 @@ client.on("ready", async() => {
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
-                await interaction.deferUpdate();
                 let gId = interaction.guild.id;
                 if (interaction.message.channel.id != 871456134714765332) return;
 
@@ -432,8 +431,6 @@ client.on("ready", async() => {
 });
 
 const PlrCmd = async (interaction, plr, res) => {
-    await interaction.deferReply();
-
     const e = new EmbedBuilder()
         .setDescription("Waiting for server...")
         .setColor('#5865f2')
