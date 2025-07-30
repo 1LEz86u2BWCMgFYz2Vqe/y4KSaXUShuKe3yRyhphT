@@ -801,7 +801,7 @@ const PostResp = async(msg, str) => {
 client.on("guildMemberAdd", member => {
     client.channels.cache.get('1141080028268998746').send({
         content: `Welcome to my Discord Server <@${member.id}>. Please read the following text to get started:`,
-        embeds: [new EmbedBuilder().setDescription("You need to be verified (using RoVer or Bloxlink) in order to use commands and to be able to see other channels.")]
+        embeds: [new EmbedBuilder().setDescription(`You need to be verified (using RoVer or Bloxlink) in order to use commands (for in-game). Have fun!`)]
     });
 });
 
