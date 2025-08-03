@@ -805,6 +805,12 @@ client.on("guildMemberAdd", member => {
     });
 });
 
+client.on("guildMemberRemove", member => {
+    member.ban({reason: "Left the server"})
+    .then(() => console.log(`${member.user.tag} was banned for leaving the server.`))
+    .catch(console.error);
+});
+
 client.on("messageCreate", async msg => {
     if (msg.author.bot) return;
 
