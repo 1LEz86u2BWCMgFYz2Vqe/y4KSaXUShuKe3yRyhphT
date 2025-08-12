@@ -14,6 +14,27 @@ const client = new Client({
 
 console.log("test");
 
+// Debug event hooks
+client.on('error', err => {
+    console.error('ERROR', err);
+});
+
+client.on('warn', info => {
+    console.warn('WARN', info);
+});
+
+client.on('debug', info => {
+    console.log('DEBUG', info);
+});
+
+client.on('shardError', err => {
+    console.error('SHARD ERROR', err);
+});
+
+client.on('invalidated', () => {
+    console.error('INVALIDATED session');
+});
+
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
@@ -24,10 +45,12 @@ client.once('ready', async () => {
             return;
         }
         await channel.send('hello');
-        console.log('Message sent!');
+        console.log('Message sent');
     } catch (err) {
         console.error('Failed to send message:', err);
     }
 });
 
-client.login(process.env.SECRET);
+client.login(process.env.SECRET).catch(err => {
+    console.error('Login failed:', err);
+});
