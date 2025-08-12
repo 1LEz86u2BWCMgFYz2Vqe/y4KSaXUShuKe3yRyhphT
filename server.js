@@ -428,6 +428,38 @@ client.on("ready", async() => {
     client.channels.cache.get('1395765757060714590').send({
         content: `online`,
     });
+
+    app.post("/", async(req, res) => {
+        let body = req.body;
+        if (body)
+            if (!body || !body.key || body.key != rbxToken) {
+                var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+                console.log(`Server with the IP ${ip} attempted to post something without the key`);
+                return;
+            }
+        if (body.type === 'response') {
+            console.log("got response");
+            res.send('Success');
+            PostResp(body.msg, body.str);
+        } else if (body.type === 'file') {
+            res.send('Success');
+            const buffer = Buffer.from(body.str);
+            const file = new AttachmentBuilder(buffer, { name: `${body.title}.txt` })
+            let info = body.msg.split(" ");
+            let msg = await client.channels.cache.get(info[0]).messages.fetch(info[1]).catch(e => e);
+            if (!msg) return;
+            msg.reply({
+                files: [file]
+            });
+        } else if (body.type === 'postFile') {
+            const buffer = Buffer.from(body.str);
+            const file = new AttachmentBuilder(buffer, { name: `${body.title}.txt` })
+            client.channels.cache.get('1125133941423231116').send({
+                files: [file]
+            });
+            res.send('Success');
+        }
+    });
 });
 
 const PlrCmd = async (interaction, plr, res) => {
@@ -802,7 +834,7 @@ client.on("guildMemberAdd", member => {
     // client.channels.cache.get('1141080028268998746').send({
     //     content: `Welcome to my Discord Server <@${member.id}>. Please read the following text to get started:`,
     //     embeds: [new EmbedBuilder().setDescription(`You need to be verified (using RoVer or Bloxlink) in order to use commands (for in-game). Have fun!`)]
-    // });
+    // });  
 });
 
 client.on("guildMemberRemove", member => {
@@ -844,38 +876,6 @@ app.get("/", async function (req, res) {
 
 app.get('/updates', async (req, res) => {
     res.send(JSON.stringify(updates));
-});
-
-app.post("/", async (req, res) => {
-    let body = req.body;
-    if (body)
-        if (!body || !body.key || body.key != rbxToken) {
-            var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
-            console.log(`Server with the IP ${ip} attempted to post something without the key`);
-            return;
-        }
-    if (body.type === 'response') {
-        console.log("got response");
-        res.send('Success');
-        PostResp(body.msg, body.str);
-    } else if (body.type === 'file') {
-        res.send('Success');
-        const buffer = Buffer.from(body.str);
-        const file = new AttachmentBuilder(buffer, { name: `${body.title}.txt` })
-        let info = body.msg.split(" ");
-        let msg = await client.channels.cache.get(info[0]).messages.fetch(info[1]).catch(e => e);
-        if (!msg) return;
-        msg.reply({
-            files: [file]
-        });
-    } else if (body.type === 'postFile') {
-        const buffer = Buffer.from(body.str);
-        const file = new AttachmentBuilder(buffer, { name: `${body.title}.txt` })
-        client.channels.cache.get('1125133941423231116').send({
-            files: [file]
-        });
-        res.send('Success');
-    }
 });
 
 let listener = app.listen(process.env.PORT, function () {
