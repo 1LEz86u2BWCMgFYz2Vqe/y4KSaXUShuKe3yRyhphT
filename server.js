@@ -870,6 +870,18 @@ client.on("messageCreate", async msg => {
 
     // if (msg.channel.id === '975492551224213514') updateUL();
 });
+client.on("threadCreate", async (thread) => {
+    if (thread.parentId === "1406056999929774111"){
+        try {
+            const starterMsg = await thread.fetchStarterMessage();
+            if (!starterMsg) return;
+            await starterMsg.react("✅");
+            await starterMsg.react("❌");
+        } catch (err) {
+            console.error("Failed to react:", err);
+        }
+    }
+});
 
 app.use(express.static("public"));
 app.use(express.json());
