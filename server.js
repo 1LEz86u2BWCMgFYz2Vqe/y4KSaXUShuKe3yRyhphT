@@ -219,6 +219,8 @@ const wlGuilds = {
 }
 
 const sendGameInfo = async() => {
+	const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 	try {
 		const fetchUniverseId = async(placeId) => {
 			const res = await axios.get(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`);
@@ -227,11 +229,15 @@ const sendGameInfo = async() => {
 
 		const getGameData = async(placeId) => {
 			const universeId = await fetchUniverseId(placeId);
-			const [gameInfo, votes, favs] = await Promise.all([
-				axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`),
-				axios.get(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`),
-				axios.get(`https://games.roblox.com/v1/games/${universeId}/favorites/count`)
-			]);
+			
+			await delay(1e3);
+			const gameInfo = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
+			
+			await delay(1e3);
+			const votes = await axios.get(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`);
+			
+			await delay(1e3);
+			const favs = await axios.get(`https://games.roblox.com/v1/games/${universeId}/favorites/count`);
 
 			const info = gameInfo.data.data[0];
 			const voteData = votes.data.data[0];
