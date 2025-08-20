@@ -23,7 +23,12 @@ const client = new Client({
 		GatewayIntentBits.GuildMessageReactions,
 		GatewayIntentBits.GuildMembers,
 	],
-	partials: [Partials.Message, Partials.Channel, Partials.Reaction],
+	partials: [
+        Partials.Message, 
+        Partials.Channel, 
+        Partials.Reaction,
+        Partials.GuildMember
+    ],
 });
 
 const token = process.env.SECRET;
