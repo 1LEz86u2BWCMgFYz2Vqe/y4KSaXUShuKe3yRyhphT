@@ -229,14 +229,16 @@ const sendGameInfo = async() => {
 
 		const getGameData = async(placeId) => {
 			const universeId = await fetchUniverseId(placeId);
-			
-			await delay(1e3);
+            const del = 10*1e3;
+
+
+			await delay(del);
 			const gameInfo = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
 			
-			await delay(1e3);
+			await delay(del);
 			const votes = await axios.get(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`);
 			
-			await delay(1e3);
+			await delay(del);
 			const favs = await axios.get(`https://games.roblox.com/v1/games/${universeId}/favorites/count`);
 
 			const info = gameInfo.data.data[0];
@@ -302,9 +304,12 @@ client.on("ready", async() => {
         }
     };
 
-    // await sendGameInfo();
-    // const updateMins = 60;
-	// setInterval(sendGameInfo, updateMins*60*1e3);
+    await sendGameInfo();
+    const updateMins = 60;
+	setInterval(sendGameInfo, updateMins*60*1e3);
+
+    const resetH = 24;
+    setInterval(() => (console.log("Restarting app"), process.exit(0)), resetH * 60 * 60 * 1e3);
 
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id === '259085441448280064') {
