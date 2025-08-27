@@ -302,9 +302,10 @@ client.on("ready", async() => {
         }
     };
 
-    await sendGameInfo();
-    const updateT = 30;
-	setInterval(sendGameInfo, updateT*60*1e3);
+    // await sendGameInfo();
+    // const updateMins = 60;
+	// setInterval(sendGameInfo, updateMins*60*1e3);
+
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id === '259085441448280064') {
             if (interaction.isButton()) {
