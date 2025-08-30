@@ -550,8 +550,10 @@ const PostToServer = async (msg, content, toPost) => {
     let func = msg.replied ? "editReply" : "reply";
     if (msg.type === 19) func = "edit";
 
-    await msg[func](content);
-    const m = await msg.channel.messages.fetch(msg.id);
+    const m = await msg[func]({
+        ...content,
+        withResponse: true
+    });
 
     queue.push({
         msg: `${m.channel.id} ${m.id}`,
@@ -561,8 +563,8 @@ const PostToServer = async (msg, content, toPost) => {
     let embed = m.embeds[0];
     let oldDesc = embed?.description;
 
-    setTimeout(async () => {
-        const newMsg = await client.channels.cache.get(m.channel.id).messages.fetch(m.id).catch(() => null);
+    setTimeout(async() => {
+        const newMsg = await m.channel.messages.fetch(m.id).catch(() => null);
         if (!newMsg) return;
 
         const newEmbed = newMsg.embeds[0];
