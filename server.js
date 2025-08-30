@@ -273,7 +273,7 @@ const sendGameInfo = async() => {
 	}
 };
 
-client.on("ready", async() => {
+client.on("clientReady", async() => {
     console.log("Successfully logged in Discord bot.");
     client.user.setPresence({
         activities: [{ name: 'ROBLOX', type: ActivityType.Playing }],
