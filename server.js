@@ -550,14 +550,16 @@ const PostToServer = async (msg, content, toPost) => {
     let func = msg.replied ? "editReply" : "reply";
     if (msg.type === 19) func = "edit";
 
-    let m;
+let m;
 
-    if (msg.isCommand && typeof msg.fetchReply === "function") {
-        await msg[func](content);
-        m = await msg.fetchReply(); 
+    if (msg?.fetchReply) {
+        await msg[func](content);       
+        m = await msg.fetchReply();    
     } else {
-        m = await msg[func](content);
+        m = await msg[func](content); 
     }
+
+    console.log("msg is: " +m);
 
     queue.push({
         msg: `${m.channel.id} ${m.id}`,
