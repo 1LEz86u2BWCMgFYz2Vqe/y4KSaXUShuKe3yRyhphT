@@ -229,8 +229,7 @@ const sendGameInfo = async() => {
 
 		const getGameData = async(placeId) => {
 			const universeId = await fetchUniverseId(placeId);
-            const del = 10*1e3;
-
+            const del = 30*1e3;
 
 			await delay(del);
 			const gameInfo = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
