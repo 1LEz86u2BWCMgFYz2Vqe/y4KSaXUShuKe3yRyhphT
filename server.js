@@ -445,7 +445,7 @@ client.on("clientReady", async() => {
         content: `online`,
     });
 
-    app.post("/", async(req, res) => {
+    app.post("/", express.json({ limit: '15mb' }), async (req, res) => {
         let body = req.body;
         if (body)
             if (!body || !body.key || body.key != rbxToken) {
