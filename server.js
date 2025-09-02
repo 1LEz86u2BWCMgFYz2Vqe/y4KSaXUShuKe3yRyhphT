@@ -307,8 +307,8 @@ client.on("clientReady", async() => {
     const updateMins = 60;
 	setInterval(sendGameInfo, updateMins*60*1e3);
 
-    const resetH = 24;
-    setInterval(() => (console.log("Restarting app"), process.exit(0)), resetH * 60 * 60 * 1e3);
+    // const resetH = 24;
+    // setInterval(() => (console.log("Restarting app"), process.exit(0)), resetH * 60 * 60 * 1e3);
 
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id !== '259085441448280064') {
