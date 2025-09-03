@@ -637,6 +637,8 @@ const PlrCmd = async(interaction, plr, res) => {
 
 
 const PostToServer = async(interaction, content, toPost) => {
+    console.log("Posting to server");
+    
     try {
         if (!interaction.deferred && !interaction.replied) {
             console.warn('PostToServer called without deferred interaction');
