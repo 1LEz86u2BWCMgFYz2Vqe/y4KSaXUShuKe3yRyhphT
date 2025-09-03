@@ -861,6 +861,8 @@ const setUser = async(action, user, param, plrMsg) => {
 };
 
 async function determineType(action, message, args) {
+    console.log(action, message, args);
+
     if (action === 'help') {
         const e = new EmbedBuilder()
             .setTitle('List of commands')
