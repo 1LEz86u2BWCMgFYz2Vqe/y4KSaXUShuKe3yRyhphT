@@ -303,9 +303,9 @@ client.on("clientReady", async() => {
         }
     };
 
-    await sendGameInfo();
-    const updateMins = 60;
-	setInterval(sendGameInfo, updateMins*60*1e3);
+    // await sendGameInfo();
+    // const updateMins = 60;
+	// setInterval(sendGameInfo, updateMins*60*1e3);
 
     // const resetH = 24;
     // setInterval(() => (console.log("Restarting app"), process.exit(0)), resetH * 60 * 60 * 1e3);
