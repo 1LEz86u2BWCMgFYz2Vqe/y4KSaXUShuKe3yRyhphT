@@ -171,8 +171,7 @@ const commands = [{
             //         });
             //         return;
             //     }))
-
-            msg.editReply({
+            msg.reply({
                 embeds: [e]
             });
         }
