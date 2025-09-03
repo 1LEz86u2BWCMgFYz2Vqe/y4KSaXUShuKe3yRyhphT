@@ -167,7 +167,7 @@ const commands = [{
                     });
                     e.setTitle(data.name)
                     e.setDescription(str)
-                    msg.reply({
+                    msg.editReply({
                         embeds: [e]
                     });
                     return;
@@ -395,7 +395,6 @@ client.on("clientReady", async() => {
             }
 
             if (cmd === 'info') {
-                await interaction.deferReply();
                 try {
                     GetFuncFromCmd(cmd)(interaction);
                 } catch (error) {
@@ -420,9 +419,7 @@ client.on("clientReady", async() => {
                     const sid = args.getString("server");
                     const getLogs = args.getBoolean("chat");
                     sEmbed.setTitle(`Server: ${sid}`);
-                    
-                    await interaction.editReply({ embeds: [sEmbed] });
-                    
+                                
                     const serverPost = {
                         action: 'server',
                         server: sid,
@@ -433,7 +430,6 @@ client.on("clientReady", async() => {
                     
                 case "servers":
                     sEmbed.setTitle('List of servers');
-                    await interaction.editReply({ embeds: [sEmbed] });
                     await PostToServer(interaction, { embeds: [sEmbed] }, { action: "servers" });
                     break;
                     
@@ -441,9 +437,7 @@ client.on("clientReady", async() => {
                     const consoleSid = args.getString("server");
                     const consoleStr = args.getString("input");
                     sEmbed.setTitle(`Server: ${consoleSid}`);
-                    
-                    await interaction.editReply({ embeds: [sEmbed] });
-                    
+                                        
                     const consolePost = {
                         action: 'console',
                         server: consoleSid,
@@ -458,9 +452,7 @@ client.on("clientReady", async() => {
                     const chatSid = args.getString("server");
                     const chatStr = args.getString("text");
                     sEmbed.setTitle(`Server: ${chatSid}`);
-                    
-                    await interaction.editReply({ embeds: [sEmbed] });
-                    
+                                    
                     const chatPost = {
                         action: 'chat',
                         server: chatSid,
@@ -479,9 +471,7 @@ client.on("clientReady", async() => {
                     break;
                     
                 case "datastores":
-                    sEmbed.setTitle(`Players DataStores`);
-                    await interaction.editReply({ embeds: [sEmbed] });
-                    
+                    sEmbed.setTitle(`Players DataStores`);                    
                     const datastorePost = {
                         action: 'datastores',
                         user: interaction.member.nickname,
@@ -490,7 +480,7 @@ client.on("clientReady", async() => {
                     break;
                     
                 default:
-                    await interaction.editReply({ content: 'Unknown command.' });
+                    await interaction.editReply({ content: 'Unknown command' });
             }
             
         } catch (error) {
