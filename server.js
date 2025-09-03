@@ -861,8 +861,6 @@ const setUser = async(action, user, param, plrMsg) => {
 };
 
 async function determineType(action, message, args) {
-    console.log(action, message, args);
-
     if (action === 'help') {
         const e = new EmbedBuilder()
             .setTitle('List of commands')
@@ -1005,6 +1003,7 @@ client.on("messageCreate", async msg => {
     const args = msg.content.split(" ");
     const cmd = args[0].substring(1);
 
+    console.log(cmd, msg.content.startsWith(prefix), FoundCmd(cmd))
     if (msg.content.startsWith(prefix) && FoundCmd(cmd)) {
         if (msg.author.id === '259085441448280064') { //msg.member.roles.cache.has('879382602576986162')){ 
             determineType(cmd.toLowerCase(), msg, args)
