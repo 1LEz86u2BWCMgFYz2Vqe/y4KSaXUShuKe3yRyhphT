@@ -150,28 +150,31 @@ const commands = [{
         name: 'info',
         description: 'Get information about the game.',
         func: (msg) => {
-            let gInfos = wlGuilds[msg.guild.id];
             const e = new EmbedBuilder()
-                .setTitle(gInfos.Name)
-            axios.all([axios.get(`https://games.roblox.com/v1/games?universeIds=${gInfos.UID}`),
-                    axios.get(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${gInfos.UID}&size=512x512&format=Png&isCircular=false`),
-                ])
-                .then(axios.spread((gameinfo, logo) => {
-                    e.setThumbnail(logo.data.data[0].imageUrl);
-                    let data = gameinfo.data.data[0];
-                    let str = "";
-                    Object.entries(data).map(([k, v]) => {
-                        if (v !== null) {
-                            str += `${k} **${v}**\n`
-                        }
-                    });
-                    e.setTitle(data.name)
-                    e.setDescription(str)
-                    msg.editReply({
-                        embeds: [e]
-                    });
-                    return;
-                }))
+                .setTitle("Information")
+            // axios.all([axios.get(`https://games.roblox.com/v1/games?universeIds=${gInfos.UID}`),
+            //         axios.get(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${gInfos.UID}&size=512x512&format=Png&isCircular=false`),
+            //     ])
+            //     .then(axios.spread((gameinfo, logo) => {
+            //         e.setThumbnail(logo.data.data[0].imageUrl);
+            //         let data = gameinfo.data.data[0];
+            //         let str = "";
+            //         Object.entries(data).map(([k, v]) => {
+            //             if (v !== null) {
+            //                 str += `${k} **${v}**\n`
+            //             }
+            //         });
+            //         e.setTitle(data.name)
+            //         e.setDescription(str)
+            //         msg.editReply({
+            //             embeds: [e]
+            //         });
+            //         return;
+            //     }))
+
+            msg.editReply({
+                embeds: [e]
+            });
         }
     },
 ];
@@ -205,17 +208,6 @@ const GenStr = (l) => {
         text += possible.charAt(Math.floor(Math.random() * possible.length));
 
     return text;
-}
-
-const wlGuilds = {
-    "241697344360415232": {
-        Name: "R&Box",
-        UID: "3949562509",
-    },
-    "1105952261227687946": {
-        Name: "CS Notify",
-        UID: "1",
-    },
 }
 
 const sendGameInfo = async() => {
@@ -283,24 +275,19 @@ client.on("clientReady", async() => {
     let botId = '1070340757497577563';
     const Guilds = client.guilds.cache.map(guild => guild.id);
     for (const [key, value] of Object.entries(Guilds)) {
-        let gInfos = wlGuilds[value];
-        if (gInfos) {
-            (async() => {
-                try {
-                    console.log(`Started refreshing application (/) commands in the ${gInfos.Name} discord server.`);
-                    await rest.put(
-                        Routes.applicationGuildCommands(botId, value), {
-                            body: commands
-                        },
-                    );
-                    console.log(`Successfully reloaded application (/) commands in the ${gInfos.Name} discord server.`);
-                } catch (error) {
-                    console.error(error);
-                }
-            })()
-
-
-        }
+        (async() => {
+            try {
+                console.log(`Started refreshing application (/) commands in the discord server.`);
+                await rest.put(
+                    Routes.applicationGuildCommands(botId, value), {
+                        body: commands
+                    },
+                );
+                console.log(`Successfully reloaded application (/) commands in the discord server.`);
+            } catch (error) {
+                console.error(error);
+            }
+        })()
     };
 
     // await sendGameInfo();
