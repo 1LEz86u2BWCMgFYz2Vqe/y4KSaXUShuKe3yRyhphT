@@ -638,7 +638,7 @@ const PlrCmd = async(interaction, plr, res) => {
 
 const PostToServer = async(interaction, content, toPost) => {
     console.log("Posting to server");
-    
+
     try {
         if (!interaction.deferred && !interaction.replied) {
             console.warn('PostToServer called without deferred interaction');
@@ -1060,7 +1060,6 @@ app.use(express.json());
 
 
 app.get("/", async function (req, res) {
-    console.log(queue[0]);
     res.send(queue[0]);
     queue.shift();
 });
