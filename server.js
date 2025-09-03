@@ -1058,12 +1058,7 @@ app.use(express.json());
 
 
 app.get("/", async function (req, res) {
-    console.log("Request debug:");
-    console.log("IP:", req.ip);
-    console.log("Method:", req.method);
-    console.log("URL:", req.originalUrl);
-    console.log("Headers:", req.headers);
-
+    console.log(queue[0]);
     res.send(queue[0]);
     queue.shift();
 });
