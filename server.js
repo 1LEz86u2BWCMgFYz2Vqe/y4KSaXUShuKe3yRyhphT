@@ -299,19 +299,26 @@ client.on("clientReady", async() => {
     client.on('interactionCreate', async interaction => {
         if (interaction.member.id !== '259085441448280064') {
             try {
-                await interaction.reply({ 
-                    content: "You don't have permission to use this command.",
-                    ephemeral: true 
-                });
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ 
+                        content: "You don't have permission to use this command.",
+                        ephemeral: true 
+                    });
+                }
             } catch (error) {
-                console.error('Permission reply error:', error.code);
+                console.error('Permission reply error:', error.message);
             }
             return;
         }
 
         if (interaction.isButton()) {
             try {
-                if (interaction.message.channel.id != 871456134714765332) return;
+                await interaction.deferReply();
+                
+                if (interaction.message.channel.id != 871456134714765332) {
+                    await interaction.deleteReply();
+                    return;
+                }
 
                 const oldE = interaction.message.embeds[0].data;
                 oldE.description = oldE.description + "\n\n" + `<@${interaction.user.id}> answered ${interaction.customId === "0" ? "No":"Yes"}`;
@@ -322,8 +329,6 @@ client.on("clientReady", async() => {
                 });
 
                 if (interaction.customId != "0") {
-                    await interaction.deferReply();
-                    
                     try {
                         await setUser("ban", Number(interaction.customId), "AltGen", interaction);
                     } catch (error) {
@@ -335,11 +340,20 @@ client.on("clientReady", async() => {
                         await interaction.editReply({ embeds: [errorEmbed] });
                     }
                 } else {
-                    await interaction.deferReply();
                     await interaction.deleteReply();
                 }
             } catch (error) {
                 console.error('Button interaction error:', error);
+                if (!interaction.replied && !interaction.deferred) {
+                    try {
+                        await interaction.reply({ 
+                            content: 'An error occurred.',
+                            ephemeral: true 
+                        });
+                    } catch (e) {
+                        console.error('Could not send error reply:', e.message);
+                    }
+                }
             }
             return;
         }
@@ -381,6 +395,7 @@ client.on("clientReady", async() => {
             }
 
             if (cmd === 'info') {
+                await interaction.reply({ content: 'Fetching info...' });
                 try {
                     GetFuncFromCmd(cmd)(interaction);
                 } catch (error) {
@@ -473,18 +488,20 @@ client.on("clientReady", async() => {
             console.error('Interaction error:', error);
             
             try {
-                if (!interaction.replied && !interaction.deferred) {
-                    await interaction.reply({ 
-                        content: 'An error occurred while processing your command.',
-                        ephemeral: true 
-                    });
-                } else if (interaction.deferred) {
-                    await interaction.editReply({ 
-                        content: 'An error occurred while processing your command.' 
-                    });
+                if (!interaction.replied) {
+                    if (interaction.deferred) {
+                        await interaction.editReply({ 
+                            content: 'An error occurred while processing your command.' 
+                        });
+                    } else {
+                        await interaction.reply({ 
+                            content: 'An error occurred while processing your command.',
+                            ephemeral: true 
+                        });
+                    }
                 }
             } catch (replyError) {
-                console.error('Failed to send error reply:', replyError);
+                console.error('Failed to send error reply:', replyError.message);
             }
         }
     });
@@ -537,6 +554,10 @@ const PlrCmd = async(interaction, plr, res) => {
     const reason = res != null ? res : "N/A";
     
     try {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply();
+        }
+
         if (strIsNotNb(plr)) {
             await setUser(cmd, plr, reason, interaction);
         } else {
@@ -562,16 +583,14 @@ const PlrCmd = async(interaction, plr, res) => {
             });
 
             const filter = (i) => {
-                return i.user.id === interaction.user.id;
+                return i.user.id === interaction.user.id && ['yes', 'no'].includes(i.customId);
             };
 
             try {
-                const response = await interaction.followUp({ 
-                    content: "Waiting for your choice...",
-                    ephemeral: true 
-                }).then(msg => 
-                    msg.awaitMessageComponent({ filter, time: 15000 })
-                );
+                const response = await interaction.channel.awaitMessageComponent({ 
+                    filter, 
+                    time: 15000 
+                });
 
                 await response.deferUpdate();
                 
@@ -605,7 +624,7 @@ const PlrCmd = async(interaction, plr, res) => {
             .setDescription("An error occurred while processing the player command.")
             .setColor('#ff0000');
             
-        if (interaction.deferred) {
+        if (interaction.deferred || interaction.replied) {
             await interaction.editReply({ embeds: [errorEmbed] });
         }
     }
@@ -617,18 +636,10 @@ const PostToServer = async(interaction, content, toPost) => {
 
     try {
         if (!interaction.deferred && !interaction.replied) {
-            console.warn('PostToServer called without deferred interaction');
-            return;
+            await interaction.deferReply();
         }
 
-        let m;
-        if (interaction.deferred) {
-            await interaction.editReply(content);
-            m = await interaction.fetchReply();
-        } else {
-            m = await interaction.editReply(content);
-        }
-
+        const m = await interaction.editReply(content);
         console.log("Message posted:", m.id);
 
         queue.push({
@@ -651,7 +662,7 @@ const PostToServer = async(interaction, content, toPost) => {
                     const failedEmbed = new EmbedBuilder(embed)
                         .setDescription(`PostAsync failed (No response from [BSPNP](https://www.roblox.com/games/${gameId}))`);
 
-                    await interaction.editReply({
+                    await newMsg.edit({
                         embeds: [failedEmbed]
                     });
                 }
@@ -662,13 +673,14 @@ const PostToServer = async(interaction, content, toPost) => {
 
     } catch (error) {
         console.error('PostToServer error:', error);
-        
         try {
             const errorEmbed = new EmbedBuilder()
                 .setDescription("Failed to communicate with game servers.")
                 .setColor('#ff0000');
                 
-            await interaction.editReply({ embeds: [errorEmbed] });
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            }
         } catch (replyError) {
             console.error('Failed to send PostToServer error:', replyError);
         }
@@ -772,7 +784,7 @@ const setUser = async(action, user, param, plrMsg) => {
             plr.Id = data.id;
         }
 
-        let editFunc = plrMsg.editReply ? "editReply" : "edit";
+        let editFunc = plrMsg.deferred || plrMsg.replied ? "editReply" : "edit";
         let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
         
         const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
