@@ -991,19 +991,18 @@ client.on("guildMemberAdd", member => {
     // });  
 });
 
-client.on("guildMemberRemove", member => {
+client.on("guildMemberRemove", (member) => {
     member.ban({reason: "Left the server"})
     .then(() => console.log(`${member.user.tag} was banned for leaving the server.`))
     .catch(console.error);
 });
 
-client.on("messageCreate", async msg => {
+client.on("messageCreate", async(msg) => {
     if (msg.author.bot) return;
 
     const args = msg.content.split(" ");
     const cmd = args[0].substring(1);
 
-    console.log(cmd, msg.content.startsWith(prefix), FoundCmd(cmd))
     if (msg.content.startsWith(prefix) && FoundCmd(cmd)) {
         if (msg.author.id === '259085441448280064') { //msg.member.roles.cache.has('879382602576986162')){ 
             determineType(cmd.toLowerCase(), msg, args)
@@ -1033,8 +1032,7 @@ client.on("threadCreate", async(thread) => {
 });
 
 app.use(express.static("public"));
-app.use(express.json());
-
+app.use(express.json({ limit: '50mb' }));
 
 app.get("/", async function (req, res) {
     res.send(queue[0]);
