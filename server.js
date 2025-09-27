@@ -551,10 +551,12 @@ client.on("clientReady", async() => {
 
 const PlrCmd = async(interaction, plr, res) => {
     const cmd = interaction.commandName;
+    console.log(cmd, plr, res);
     const reason = res != null ? res : "N/A";
     
     try {
         if (!interaction.deferred && !interaction.replied) {
+            console.log("deferring reply");
             await interaction.deferReply();
         }
 
@@ -1048,14 +1050,14 @@ app.use(express.json({ limit: '50mb' }));
 
 app.get("/", async function (req, res) {
     const item = queue[0];
-    console.log(`[REQ] UA: ${req.get("user-agent")} Returning:`, item);
-
+    
     queue.shift();
-
+    
     if (item === undefined) {
         return res.status(204).end();
     }
-
+    
+    console.log(`[REQ] UA: ${req.get("user-agent")} Returning:`, item);
     res.send(item);
 });
 
