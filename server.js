@@ -1047,9 +1047,19 @@ app.use(express.static("public"));
 app.use(express.json({ limit: '50mb' }));
 
 app.get("/", async function (req, res) {
+    console.log("IP:", req.ip);                  // Express's parsed IP
+    console.log("Proxy IPs:", req.ips);          // If you're behind a proxy & trust proxy is enabled
+    console.log("Remote Addr:", req.connection.remoteAddress); // raw socket info
+    console.log("Method:", req.method);          // GET/POST/etc
+    console.log("Path:", req.path);              // request path
+    console.log("Query:", req.query);            // query params ?a=1&b=2
+    console.log("Headers:", req.headers);        // all headers
+    console.log("User-Agent:", req.get("user-agent")); // just user-agent
+
     res.send(queue[0]);
     queue.shift();
 });
+
 
 app.get('/updates', async(req, res) => {
     res.send(JSON.stringify(updates));
