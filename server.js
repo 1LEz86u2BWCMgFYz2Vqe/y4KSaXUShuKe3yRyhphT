@@ -176,7 +176,7 @@ client.on(Events.InteractionCreate, async interaction => {
         try {
             await interaction.deferReply();
         } catch (error) {
-            console.error('FATAL: Failed to defer - interaction expired:', error.message);
+            console.error('Failed to defer - interaction expired:', error.message);
             return;
         }
     }
@@ -235,7 +235,7 @@ client.on(Events.InteractionCreate, async interaction => {
     setImmediate(() => {
         try {
             client.channels.cache.get('975495174413242378')?.send({
-                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used **${cmd}**`)]
+                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
             });
         } catch (error) {
             console.error('Logging error:', error);
