@@ -379,7 +379,7 @@ const PlrCmd = async(interaction, plr, res) => {
             try {
                 const response = await interaction.channel.awaitMessageComponent({ 
                     filter, 
-                    time: 15000 
+                    time: 30*1e3, 
                 });
 
                 await response.deferUpdate();
@@ -398,8 +398,8 @@ const PlrCmd = async(interaction, plr, res) => {
                 
             } catch (collectorError) {
                 const timeoutEmbed = new EmbedBuilder()
-                    .setDescription("You took too long to answer.")
-                    .setColor('#ff0000');
+                .setDescription(collectorError)
+                .setColor('#ff0000');
                     
                 await interaction.editReply({
                     embeds: [timeoutEmbed],
