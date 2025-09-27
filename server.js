@@ -3,29 +3,27 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const {
-    Client,
-    GatewayIntentBits,
-    Partials,
-    EmbedBuilder,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    AttachmentBuilder,
-    ActivityType,
-    Events
+	Client,
+	GatewayIntentBits,
+	Partials,
+	EmbedBuilder,
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	AttachmentBuilder,
+	ActivityType
 } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v10');
-
 const app = express();
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildMembers,
-    ],
-    partials: [
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.GuildMembers,
+	],
+	partials: [
         Partials.Message, 
         Partials.Channel, 
         Partials.Reaction,
@@ -41,7 +39,6 @@ const gameId = "16168655940";
 let rbxToken = process.env.SECRETRBLX;
 let numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣"];
 var updates = [];
-var queue = [];
 
 const commands = [{
         name: "ban",
@@ -155,12 +152,32 @@ const commands = [{
         func: (msg) => {
             const e = new EmbedBuilder()
                 .setTitle("Information")
+            // axios.all([axios.get(`https://games.roblox.com/v1/games?universeIds=${gInfos.UID}`),
+            //         axios.get(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${gInfos.UID}&size=512x512&format=Png&isCircular=false`),
+            //     ])
+            //     .then(axios.spread((gameinfo, logo) => {
+            //         e.setThumbnail(logo.data.data[0].imageUrl);
+            //         let data = gameinfo.data.data[0];
+            //         let str = "";
+            //         Object.entries(data).map(([k, v]) => {
+            //             if (v !== null) {
+            //                 str += `${k} **${v}**\n`
+            //             }
+            //         });
+            //         e.setTitle(data.name)
+            //         e.setDescription(str)
+            //         msg.editReply({
+            //             embeds: [e]
+            //         });
+            //         return;
+            //     }))
             msg.reply({
                 embeds: [e]
             });
         }
     },
 ];
+
 
 const GetFuncFromCmd = (cmd) => {
     for (const [key, value] of Object.entries(commands)) {
@@ -171,229 +188,83 @@ const GetFuncFromCmd = (cmd) => {
     }
 }
 
-client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand() && !interaction.isButton()) return;
-
-    try {
-        await interaction.deferReply();
-    } catch (error) {
-        console.error('Failed to defer:', error.message);
-        return;
-    }
-
-    if (interaction.member.id !== '259085441448280064') {
-        try {
-            await interaction.editReply({ 
-                content: "You don't have permission to use this command."
-            });
-        } catch (error) {
-            console.error('Permission reply error:', error.message);
-        }
-        return;
-    }
-
-    if (interaction.isButton()) {
-        try {
-            if (interaction.message.channel.id != 871456134714765332) {
-                await interaction.deleteReply();
-                return;
-            }
-
-            const oldE = interaction.message.embeds[0].data;
-            oldE.description = oldE.description + "\n\n" + `<@${interaction.user.id}> answered ${interaction.customId === "0" ? "No":"Yes"}`;
-            
-            await interaction.message.edit({
-                embeds: [oldE],
-                components: []
-            });
-
-            if (interaction.customId != "0") {
-                try {
-                    await setUser("ban", Number(interaction.customId), "AltGen", interaction);
-                } catch (error) {
-                    console.error('setUser error:', error);
-                    const errorEmbed = new EmbedBuilder()
-                        .setDescription("An error occurred while processing the ban.")
-                        .setColor('#ff0000');
-                    
-                    await interaction.editReply({ embeds: [errorEmbed] });
-                }
-            } else {
-                await interaction.deleteReply();
-            }
-        } catch (error) {
-            console.error('Button interaction error:', error);
-        }
-        return;
-    }
-
-    const cmd = interaction.commandName.toLowerCase();
-    const args = interaction.options;
-
-    setImmediate(() => {
-        try {
-            client.channels.cache.get('975495174413242378')?.send({
-                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
-            });
-        } catch (error) {
-            console.error('Logging error:', error);
-        }
+const startApp = async() => {
+    let promise = client.login(token);
+    console.log("Starting...");
+    promise.catch(function (error) {
+        console.error("Discord bot login | " + error);
+        process.exit(1);
     });
 
-    try {
-        if (cmd === 'help') {
-            const sEmbed = new EmbedBuilder()
-                .setTitle('List of commands')
-                .setColor('#5865f2');
-            
-            let str = "";
-            for (const [key, value] of Object.entries(commands)) {
-                if (value.name != cmd) {
-                    let newStr = `**/${value.name}**`
-                    if (value.options) {
-                        for (const opt of value.options) {
-                            newStr += ` {${opt.name}}`;
-                        }
-                    }
-                    str += newStr + ` - ${value.description} \n`;
-                }
-            }
-            sEmbed.setDescription(str);
-            await interaction.editReply({ embeds: [sEmbed] });
-            return;
-        }
-
-        if (cmd === 'info') {
-            const e = new EmbedBuilder().setTitle("Information");
-            await interaction.editReply({ embeds: [e] });
-            return;
-        }
-
-        const sEmbed = new EmbedBuilder()
-            .setDescription("Waiting for server...")
-            .setColor('#5865f2');
-
-        switch (cmd) {
-            case 'check':
-                await PlrCmd(interaction, args.getString("player"));
-                break;
-                
-            case "server":
-                const sid = args.getString("server");
-                const getLogs = args.getBoolean("chat");
-                sEmbed.setTitle(`Server: ${sid}`);
-                await PostToServer(interaction, { embeds: [sEmbed] }, {
-                    action: 'server',
-                    server: sid,
-                    getLogs: (getLogs === true ? "chat" : false),
-                });
-                break;
-                
-            case "servers":
-                sEmbed.setTitle('List of servers');
-                await PostToServer(interaction, { embeds: [sEmbed] }, { action: "servers" });
-                break;
-                
-            case 'console':
-                const consoleSid = args.getString("server");
-                const consoleStr = args.getString("input");
-                sEmbed.setTitle(`Server: ${consoleSid}`);
-                await PostToServer(interaction, { embeds: [sEmbed] }, {
-                    action: 'console',
-                    server: consoleSid,
-                    input: consoleStr,
-                    all: args.getBoolean("all"),
-                    user: interaction.member.nickname,
-                });
-                break;
-                
-            case 'chat':
-                const chatSid = args.getString("server");
-                const chatStr = args.getString("text");
-                sEmbed.setTitle(`Server: ${chatSid}`);
-                await PostToServer(interaction, { embeds: [sEmbed] }, {
-                    action: 'chat',
-                    server: chatSid,
-                    message: chatStr,
-                    user: interaction.member.nickname,
-                });
-                break;
-                
-            case "ban":
-                await PlrCmd(interaction, args.getString("player"), args.getString("arg"));
-                break;
-                
-            case "unban":
-                await PlrCmd(interaction, args.getString("player"));
-                break;
-                
-            case "datastores":
-                sEmbed.setTitle(`Players DataStores`);
-                await PostToServer(interaction, { embeds: [sEmbed] }, {
-                    action: 'datastores',
-                    user: interaction.member.nickname,
-                });
-                break;
-                
-            default:
-                await interaction.editReply({ content: 'Unknown command' });
-        }
-        
-    } catch (error) {
-        console.error('Interaction error:', error);
-        try {
-            if (interaction.deferred && !interaction.replied) {
-                await interaction.editReply({ content: 'Command failed.' });
-            }
-        } catch (e) {
-            console.error('Failed to send error reply:', e);
-        }
-    }
-});
-
-client.on(Events.MessageCreate, async(msg) => {
-    if (msg.author.bot) return;
-
-    const args = msg.content.split(" ");
-    const cmd = args[0].substring(1);
-
-    if (msg.content.startsWith("!") && FoundCmd(cmd)) {
-        if (msg.author.id === '259085441448280064') {
-            determineType(cmd.toLowerCase(), msg, args)
-        } else {
-            msg.reply("You don't have permission to use this command.");
-        }
-    }
+}
+startApp();
     
-    if (msg.channel.id === '1399028653890867272') {
-        msg.react("✅");
-        msg.react("❌");
-    }
-});
+const GenStr = (l) => {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    
+    for (var i = 0; i < l; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
 
-client.on(Events.GuildMemberAdd, member => {
-});
+    return text;
+}
 
-client.on(Events.GuildMemberRemove, (member) => {
-    member.ban({reason: "Left the server"})
-    .then(() => console.log(`${member.user.tag} was banned for leaving the server.`))
-    .catch(console.error);
-});
+const sendGameInfo = async() => {
+	const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-client.on(Events.ThreadCreate, async(thread) => {
-    if (thread.parentId === "1406056999929774111"){
-        try {
-            const starterMsg = await thread.fetchStarterMessage();
-            if (!starterMsg) return;
-            await starterMsg.react("✅");
-            await starterMsg.react("❌");
-        } catch (err) {
-            console.error("Failed to react:", err);
-        }
-    }
-});
+	try {
+		const fetchUniverseId = async(placeId) => {
+			const res = await axios.get(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`);
+			return res.data.universeId;
+		};
 
-client.on(Events.ClientReady, async() => {
+		const getGameData = async(placeId) => {
+			const universeId = await fetchUniverseId(placeId);
+            const del = 30*1e3;
+
+			await delay(del);
+			const gameInfo = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
+			
+			await delay(del);
+			const votes = await axios.get(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`);
+			
+			await delay(del);
+			const favs = await axios.get(`https://games.roblox.com/v1/games/${universeId}/favorites/count`);
+
+			const info = gameInfo.data.data[0];
+			const voteData = votes.data.data[0];
+
+			const likes = voteData.upVotes;
+			const dislikes = voteData.downVotes;
+			const total = likes + dislikes;
+			const ratio = total > 0 ? (likes / total * 100).toFixed(2) : "0.00";
+
+			return {
+				name: info.name,
+				link: `https://www.roblox.com/games/${placeId}`,
+				ratio,
+				favorites: favs.data.favoritesCount,
+                ccu: info.playing,
+                visits: info.visits,
+			};
+		};
+
+		const data = await getGameData(process.env.PLACEID);
+		const channel = await client.channels.fetch('1399038762855563444');
+		const embed = new EmbedBuilder()
+			.setTitle(data.name)
+			.setURL(data.link)
+			.setDescription(
+				`🌐 **${data.ccu} players**\n⭐ **${data.favorites}**\n👍 **${data.ratio}%**`
+			);
+
+		await channel.send({ embeds: [embed] });
+	} catch (err) {
+		console.error("Failed to send game info:", err.message);
+	}
+};
+
+client.on("clientReady", async() => {
     console.log("Successfully logged in Discord bot.");
     client.user.setPresence({
         activities: [{ name: 'ROBLOX', type: ActivityType.Playing }],
@@ -417,6 +288,13 @@ client.on(Events.ClientReady, async() => {
             }
         })()
     };
+
+    // await sendGameInfo();
+    // const updateMins = 60;
+	// setInterval(sendGameInfo, updateMins*60*1e3);
+
+    // const resetH = 24;
+    // setInterval(() => (console.log("Restarting app"), process.exit(0)), resetH * 60 * 60 * 1e3);
 
     client.channels.cache.get('1395765757060714590').send({
         content: `online`,
@@ -461,14 +339,15 @@ client.on(Events.ClientReady, async() => {
     });
 });
 
-client.on(Events.Error, console.error);
-
 const PlrCmd = async(interaction, plr, res) => {
     const cmd = interaction.commandName;
-    console.log(cmd, plr, res);
     const reason = res != null ? res : "N/A";
     
     try {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply();
+        }
+
         if (strIsNotNb(plr)) {
             await setUser(cmd, plr, reason, interaction);
         } else {
@@ -535,18 +414,21 @@ const PlrCmd = async(interaction, plr, res) => {
             .setDescription("An error occurred while processing the player command.")
             .setColor('#ff0000');
             
-        try {
+        if (interaction.deferred || interaction.replied) {
             await interaction.editReply({ embeds: [errorEmbed] });
-        } catch (replyError) {
-            console.error('Failed to send PlrCmd error:', replyError);
         }
     }
 };
+
 
 const PostToServer = async(interaction, content, toPost) => {
     console.log("Posting to server");
 
     try {
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply();
+        }
+
         const m = await interaction.editReply(content);
         console.log("Message posted:", m.id);
 
@@ -586,157 +468,31 @@ const PostToServer = async(interaction, content, toPost) => {
                 .setDescription("Failed to communicate with game servers.")
                 .setColor('#ff0000');
                 
-            await interaction.editReply({ embeds: [errorEmbed] });
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            }
         } catch (replyError) {
             console.error('Failed to send PostToServer error:', replyError);
         }
     }
 };
 
-const setUser = async(action, user, param, plrMsg) => {
-    let plr = {
-        ["Name"]: "Player",
-        ["Id"]: "1",
-    }
 
-    console.log("setUser", action, user, param);
-
-    try {
-        if (!isNb(user)) {
-            let options = {
-                method: 'POST',
-                url: 'https://users.roblox.com/v1/usernames/users',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json;charset=UTF-8'
-                },
-                data: {
-                    "usernames": [`${user}`],
-                    "excludeBannedUsers": false
-                }
-            }
-            const res = await axios(options);
-            const data = res.data.data[0];
-            if (!data){
-                const errorMsg = `User doesn't exist.`;
-                await plrMsg.editReply({content: errorMsg});
-                return;
-            }
-            plr.Name = data.name;
-            plr.Id = data.id;
-        } else {
-            const res = await axios.get(`https://users.roblox.com/v1/users/${user}`);
-            const msg = res && res.message;
-            if(msg){
-                const errorMsg = msg;
-                await plrMsg.editReply({content: errorMsg});
-                return;
-            }
-            const data = res.data;
-            plr.Name = data.name;
-            plr.Id = data.id;
-        }
-
-        let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
-        
-        const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
-        const embedCheck = new EmbedBuilder()
-            .setColor('#5865f2')
-            .setDescription('Waiting for server')
-            .setTitle(plr.Name)
-            .setURL(linkToProfile);
-
-        try {
-            const avatarRes = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${plr.Id}&size=60x60&format=Png&isCircular=false`);
-            if (avatarRes.status === 200) {
-                const img = avatarRes.data.data[0].imageUrl;
-                if (img != '') embedCheck.setThumbnail(img);
-            }
-        } catch (avatarError) {
-            console.error('Avatar fetch error:', avatarError);
-        }
-
-        await plrMsg.editReply({
-            embeds: [embedCheck],
-            content: " ",
-        });
-
-        try {
-            const [profile, friend] = await Promise.all([
-                axios.get(`https://users.roblox.com/v1/users/${plr.Id}`),
-                axios.get(`https://friends.roblox.com/v1/users/${plr.Id}/friends/count`)
-            ]);
-
-            let profileData = profile.data;
-            const username = profileData.name;
-            
-            if (profileData.isBanned) {
-                const e = new EmbedBuilder(embedCheck.data);
-                e.setDescription(`User is terminated from Roblox`);
-                await plrMsg.editReply({
-                    embeds: [e]
-                });
-            } else {
-                let friendCount = friend.data.count;
-                let friendStr;
-                if (friendCount > 1)
-                    friendStr = `${friendCount} friends`;
-                else if (friendCount == 1) {
-                    friendStr = `${friendCount} friend`;
-                } else {
-                    friendStr = `No friends`;
-                }
-                
-                const toPost = {
-                    action: action,
-                    userId: plr.Id,
-                    mod: modId,
-                    parameter: param,
-                    desc: `\nJoined ${profileData.created.split('T')[0]}\n\n${friendStr}\n\n%s`,
-                };
-                
-                await PostToServer(plrMsg, {
-                    embeds: [embedCheck]
-                }, toPost);
-            }
-        } catch (dataError) {
-            console.error('User data fetch error:', dataError);
-            const errorEmbed = new EmbedBuilder(embedCheck.data);
-            errorEmbed.setDescription('Failed to fetch user data from Roblox');
-            await plrMsg.editReply({
-                embeds: [errorEmbed]
-            });
-        }
-        
-    } catch (error) {
-        console.error('setUser error:', error);
-        
-        try {
-            const errorMsg = 'An error occurred while fetching user information.';
-            await plrMsg.editReply({content: errorMsg});
-        } catch (replyError) {
-            console.error('Failed to send setUser error:', replyError);
-        }
-    }
-};
-
-const PostResp = async(msg, str) => {
-    let info = msg.split(" ");
-    let cacheMsg = await client.channels.cache
-    .get(info[0])
-    ?.messages.fetch(info[1])
-    .catch(() => null);
-
-    if (!cacheMsg) return;
-
-    const newEmbed = new EmbedBuilder(cacheMsg.embeds[0].data);
-    newEmbed.setDescription(str);
-    cacheMsg.edit({
-        embeds: [newEmbed]
+const updateUL = async() => {
+    updates = [];
+    const channel = client.channels.cache.get('975492551224213514');
+    const messages = await channel.messages.fetch({
+        limit: 100
     });
+    for (const msg of messages) {
+        let str = msg[1].content;
+        if (str != '' && str.startsWith('```diff')) updates.push(msg[1].content);
+    }
 };
 
+var queue = [];
 const cmds = ["ban", "unban", "kick", "check", "help", "server", "servers", "info", "chat"];
+const prefix = "!";
 
 function FoundCmd(cmd) {
     cmd = cmd.toLowerCase();
@@ -767,6 +523,144 @@ function isEmpty(t) {
     });
     return res;
 }
+
+const setUser = async(action, user, param, plrMsg) => {
+    let plr = {
+        ["Name"]: "Player",
+        ["Id"]: "1",
+    }
+
+    try {
+        if (!isNb(user)) {
+            let options = {
+                method: 'POST',
+                url: 'https://users.roblox.com/v1/usernames/users',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json;charset=UTF-8'
+                },
+                data: {
+                    "usernames": [`${user}`],
+                    "excludeBannedUsers": false
+                }
+            }
+            const res = await axios(options);
+            const data = res.data.data[0];
+            if (!data){
+                const errorMsg = `User doesn't exist.`;
+                if (plrMsg.editReply) {
+                    await plrMsg.editReply({content: errorMsg});
+                } else {
+                    await plrMsg.edit({content: errorMsg});
+                }
+                return;
+            }
+            plr.Name = data.name;
+            plr.Id = data.id;
+        } else {
+            const res = await axios.get(`https://users.roblox.com/v1/users/${user}`);
+            const msg = res && res.message;
+            if(msg){
+                const errorMsg = msg;
+                if (plrMsg.editReply) {
+                    await plrMsg.editReply({content: errorMsg});
+                } else {
+                    await plrMsg.edit({content: errorMsg});
+                }
+                return;
+            }
+            const data = res.data;
+            plr.Name = data.name;
+            plr.Id = data.id;
+        }
+
+        let editFunc = plrMsg.deferred || plrMsg.replied ? "editReply" : "edit";
+        let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
+        
+        const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
+        const embedCheck = new EmbedBuilder()
+            .setColor('#5865f2')
+            .setDescription('Waiting for server')
+            .setTitle(plr.Name)
+            .setURL(linkToProfile);
+
+        try {
+            const avatarRes = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${plr.Id}&size=60x60&format=Png&isCircular=false`);
+            if (avatarRes.status === 200) {
+                const img = avatarRes.data.data[0].imageUrl;
+                if (img != '') embedCheck.setThumbnail(img);
+            }
+        } catch (avatarError) {
+            console.error('Avatar fetch error:', avatarError);
+        }
+
+        const msg = await plrMsg[editFunc]({
+            embeds: [embedCheck],
+            content: " ",
+        });
+
+        try {
+            const [profile, friend] = await Promise.all([
+                axios.get(`https://users.roblox.com/v1/users/${plr.Id}`),
+                axios.get(`https://friends.roblox.com/v1/users/${plr.Id}/friends/count`)
+            ]);
+
+            let profileData = profile.data;
+            const username = profileData.name;
+            
+            if (profileData.isBanned) {
+                const e = new EmbedBuilder(embedCheck.data);
+                e.setDescription(`User is terminated from Roblox`);
+                await plrMsg[editFunc]({
+                    embeds: [e]
+                });
+            } else {
+                let friendCount = friend.data.count;
+                let friendStr;
+                if (friendCount > 1)
+                    friendStr = `${friendCount} friends`;
+                else if (friendCount == 1) {
+                    friendStr = `${friendCount} friend`;
+                } else {
+                    friendStr = `No friends`;
+                }
+                
+                const toPost = {
+                    action: action,
+                    userId: plr.Id,
+                    mod: modId,
+                    parameter: param,
+                    desc: `\nJoined ${profileData.created.split('T')[0]}\n\n${friendStr}\n\n%s`,
+                };
+                
+                await PostToServer(plrMsg, {
+                    embeds: [embedCheck]
+                }, toPost);
+            }
+        } catch (dataError) {
+            console.error('User data fetch error:', dataError);
+            const errorEmbed = new EmbedBuilder(embedCheck.data);
+            errorEmbed.setDescription('Failed to fetch user data from Roblox');
+            await plrMsg[editFunc]({
+                embeds: [errorEmbed]
+            });
+        }
+        
+    } catch (error) {
+        console.error('setUser error:', error);
+        
+        try {
+            const errorMsg = 'An error occurred while fetching user information.';
+            if (plrMsg.editReply) {
+                await plrMsg.editReply({content: errorMsg});
+            } else {
+                await plrMsg.edit({content: errorMsg});
+            }
+        } catch (replyError) {
+            console.error('Failed to send setUser error:', replyError);
+        }
+    }
+};
 
 async function determineType(action, message, args) {
     if (action === 'help') {
@@ -876,36 +770,293 @@ async function determineType(action, message, args) {
     }
 }
 
+const PostResp = async(msg, str) => {
+    let info = msg.split(" ");
+    let cacheMsg = await client.channels.cache
+    .get(info[0])
+    ?.messages.fetch(info[1])
+    .catch(() => null);
+
+    if (!cacheMsg) return;
+
+    const newEmbed = new EmbedBuilder(cacheMsg.embeds[0].data);
+    newEmbed.setDescription(str);
+    cacheMsg.edit({
+        embeds: [newEmbed]
+    });
+};
+
+client.on("guildMemberAdd", member => {
+    // client.channels.cache.get('1141080028268998746').send({
+    //     content: `Welcome to my Discord Server <@${member.id}>. Please read the following text to get started:`,
+    //     embeds: [new EmbedBuilder().setDescription(`You need to be verified (using RoVer or Bloxlink) in order to use commands (for in-game). Have fun!`)]
+    // });  
+});
+
+client.on("guildMemberRemove", (member) => {
+    member.ban({reason: "Left the server"})
+    .then(() => console.log(`${member.user.tag} was banned for leaving the server.`))
+    .catch(console.error);
+});
+
+client.on("messageCreate", async(msg) => {
+    if (msg.author.bot) return;
+
+    const args = msg.content.split(" ");
+    const cmd = args[0].substring(1);
+
+    if (msg.content.startsWith(prefix) && FoundCmd(cmd)) {
+        if (msg.author.id === '259085441448280064') { //msg.member.roles.cache.has('879382602576986162')){ 
+            determineType(cmd.toLowerCase(), msg, args)
+        } else {
+            msg.reply("You don't have permission to use this command.");
+        }
+    }
+    
+    if (msg.channel.id === '1399028653890867272') {
+        msg.react("✅");
+        msg.react("❌");
+    }
+
+    // if (msg.channel.id === '975492551224213514') updateUL();
+});
+client.on("threadCreate", async(thread) => {
+    if (thread.parentId === "1406056999929774111"){
+        try {
+            const starterMsg = await thread.fetchStarterMessage();
+            if (!starterMsg) return;
+            await starterMsg.react("✅");
+            await starterMsg.react("❌");
+        } catch (err) {
+            console.error("Failed to react:", err);
+        }
+    }
+});
+
+client.on('interactionCreate', async interaction => {
+    if (interaction.member.id !== '259085441448280064') {
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ 
+                    content: "You don't have permission to use this command.",
+                    ephemeral: true 
+                });
+            }
+        } catch (error) {
+            console.error('Permission reply error:', error.message);
+        }
+        return;
+    }
+
+    if (interaction.isButton()) {
+        try {
+            await interaction.deferReply();
+            
+            if (interaction.message.channel.id != 871456134714765332) {
+                await interaction.deleteReply();
+                return;
+            }
+
+            const oldE = interaction.message.embeds[0].data;
+            oldE.description = oldE.description + "\n\n" + `<@${interaction.user.id}> answered ${interaction.customId === "0" ? "No":"Yes"}`;
+            
+            await interaction.message.edit({
+                embeds: [oldE],
+                components: []
+            });
+
+            if (interaction.customId != "0") {
+                try {
+                    await setUser("ban", Number(interaction.customId), "AltGen", interaction);
+                } catch (error) {
+                    console.error('setUser error:', error);
+                    const errorEmbed = new EmbedBuilder()
+                        .setDescription("An error occurred while processing the ban.")
+                        .setColor('#ff0000');
+                    
+                    await interaction.editReply({ embeds: [errorEmbed] });
+                }
+            } else {
+                await interaction.deleteReply();
+            }
+        } catch (error) {
+            console.error('Button interaction error:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({ 
+                        content: 'An error occurred.',
+                        ephemeral: true 
+                    });
+                } catch (e) {
+                    console.error('Could not send error reply:', e.message);
+                }
+            }
+        }
+        return;
+    }
+
+    if (!interaction.isChatInputCommand()) return;
+
+    const cmd = interaction.commandName.toLowerCase();
+    const args = interaction.options;
+
+    try {
+        client.channels.cache.get('975495174413242378')?.send({
+            embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
+        });
+    } catch (error) {
+        console.error('Logging error:', error);
+    }
+
+    try {
+        if (cmd === 'help') {
+            const sEmbed = new EmbedBuilder()
+                .setTitle('List of commands')
+                .setColor('#5865f2');
+            
+            let str = "";
+            for (const [key, value] of Object.entries(commands)) {
+                if (value.name != cmd) {
+                    let newStr = `**/${value.name}**`
+                    if (value.options) {
+                        for (const opt of value.options) {
+                            newStr += ` {${opt.name}}`;
+                        }
+                    }
+                    str += newStr + ` - ${value.description} \n`;
+                }
+            }
+            sEmbed.setDescription(str);
+            await interaction.reply({ embeds: [sEmbed] });
+            return;
+        }
+
+        if (cmd === 'info') {
+            await interaction.reply({ content: 'Fetching info...' });
+            try {
+                GetFuncFromCmd(cmd)(interaction);
+            } catch (error) {
+                console.error('Info command error:', error);
+                await interaction.editReply({ content: 'An error occurred while fetching game info.' });
+            }
+            return;
+        }
+
+        await interaction.deferReply();
+
+        const sEmbed = new EmbedBuilder()
+            .setDescription("Waiting for server...")
+            .setColor('#5865f2');
+
+        switch (cmd) {
+            case 'check':
+                await PlrCmd(interaction, args.getString("player"));
+                break;
+                
+            case "server":
+                const sid = args.getString("server");
+                const getLogs = args.getBoolean("chat");
+                sEmbed.setTitle(`Server: ${sid}`);
+                            
+                const serverPost = {
+                    action: 'server',
+                    server: sid,
+                    getLogs: (getLogs === true ? "chat" : false),
+                };
+                await PostToServer(interaction, { embeds: [sEmbed] }, serverPost);
+                break;
+                
+            case "servers":
+                sEmbed.setTitle('List of servers');
+                await PostToServer(interaction, { embeds: [sEmbed] }, { action: "servers" });
+                break;
+                
+            case 'console':
+                const consoleSid = args.getString("server");
+                const consoleStr = args.getString("input");
+                sEmbed.setTitle(`Server: ${consoleSid}`);
+                                    
+                const consolePost = {
+                    action: 'console',
+                    server: consoleSid,
+                    input: consoleStr,
+                    all: args.getBoolean("all"),
+                    user: interaction.member.nickname,
+                };
+                await PostToServer(interaction, { embeds: [sEmbed] }, consolePost);
+                break;
+                
+            case 'chat':
+                const chatSid = args.getString("server");
+                const chatStr = args.getString("text");
+                sEmbed.setTitle(`Server: ${chatSid}`);
+                                
+                const chatPost = {
+                    action: 'chat',
+                    server: chatSid,
+                    message: chatStr,
+                    user: interaction.member.nickname,
+                };
+                await PostToServer(interaction, { embeds: [sEmbed] }, chatPost);
+                break;
+                
+            case "ban":
+                await PlrCmd(interaction, args.getString("player"), args.getString("arg"));
+                break;
+                
+            case "unban":
+                await PlrCmd(interaction, args.getString("player"));
+                break;
+                
+            case "datastores":
+                sEmbed.setTitle(`Players DataStores`);                    
+                const datastorePost = {
+                    action: 'datastores',
+                    user: interaction.member.nickname,
+                };
+                await PostToServer(interaction, { embeds: [sEmbed] }, datastorePost);
+                break;
+                
+            default:
+                await interaction.editReply({ content: 'Unknown command' });
+        }
+        
+    } catch (error) {
+        console.error('Interaction error:', error);
+        
+        try {
+            if (!interaction.replied) {
+                if (interaction.deferred) {
+                    await interaction.editReply({ 
+                        content: 'An error occurred while processing your command.' 
+                    });
+                } else {
+                    await interaction.reply({ 
+                        content: 'An error occurred while processing your command.',
+                        ephemeral: true 
+                    });
+                }
+            }
+        } catch (replyError) {
+            console.error('Failed to send error reply:', replyError.message);
+        }
+    }
+});
+
 app.use(express.static("public"));
 app.use(express.json({ limit: '50mb' }));
 
 app.get("/", async function (req, res) {
-    const item = queue[0];
+    res.send(queue[0]);
     queue.shift();
-    
-    if (item === undefined) {
-        return res.status(204).end();
-    }
-    
-    console.log(`[REQ] UA: ${req.get("user-agent")} Returning:`, item);
-    res.send(item);
 });
 
 app.get('/updates', async(req, res) => {
     res.send(JSON.stringify(updates));
 });
 
-const startApp = async() => {
-    let promise = client.login(token);
-    console.log("Starting...");
-    promise.catch(function (error) {
-        console.error("Discord bot login | " + error);
-        process.exit(1);
-    });
-}
-
-startApp();
-
 let listener = app.listen(process.env.PORT, function () {
     console.log("App is listening to port " + listener.address().port);
 });
+
+client.on("error", console.error);
