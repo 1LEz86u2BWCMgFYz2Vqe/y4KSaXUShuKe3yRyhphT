@@ -405,8 +405,6 @@ client.on("clientReady", async() => {
                 return;
             }
 
-            await interaction.deferReply();
-
             const sEmbed = new EmbedBuilder()
                 .setDescription("Waiting for server...")
                 .setColor('#5865f2');
