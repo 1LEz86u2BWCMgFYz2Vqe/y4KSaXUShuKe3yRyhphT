@@ -172,13 +172,13 @@ const GetFuncFromCmd = (cmd) => {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
-    if (interaction.isChatInputCommand() || interaction.isButton()) {
-        try {
-            await interaction.deferReply();
-        } catch (error) {
-            console.error('Failed to defer - interaction expired:', error.message);
-            return;
-        }
+    if (!interaction.isChatInputCommand() && !interaction.isButton()) return;
+
+    try {
+        await interaction.deferReply();
+    } catch (error) {
+        console.error('Failed to defer:', error.message);
+        return;
     }
 
     if (interaction.member.id !== '259085441448280064') {
@@ -226,8 +226,6 @@ client.on(Events.InteractionCreate, async interaction => {
         }
         return;
     }
-
-    if (!interaction.isChatInputCommand()) return;
 
     const cmd = interaction.commandName.toLowerCase();
     const args = interaction.options;
@@ -344,13 +342,14 @@ client.on(Events.InteractionCreate, async interaction => {
     } catch (error) {
         console.error('Interaction error:', error);
         try {
-            await interaction.editReply({ content: 'Command failed.' });
+            if (interaction.deferred && !interaction.replied) {
+                await interaction.editReply({ content: 'Command failed.' });
+            }
         } catch (e) {
             console.error('Failed to send error reply:', e);
         }
     }
 });
-
 
 client.on(Events.MessageCreate, async(msg) => {
     if (msg.author.bot) return;
@@ -536,8 +535,10 @@ const PlrCmd = async(interaction, plr, res) => {
             .setDescription("An error occurred while processing the player command.")
             .setColor('#ff0000');
             
-        if (interaction.deferred || interaction.replied) {
+        try {
             await interaction.editReply({ embeds: [errorEmbed] });
+        } catch (replyError) {
+            console.error('Failed to send PlrCmd error:', replyError);
         }
     }
 };
@@ -546,10 +547,6 @@ const PostToServer = async(interaction, content, toPost) => {
     console.log("Posting to server");
 
     try {
-        if (!interaction.deferred && !interaction.replied) {
-            await interaction.deferReply();
-        }
-
         const m = await interaction.editReply(content);
         console.log("Message posted:", m.id);
 
@@ -589,9 +586,7 @@ const PostToServer = async(interaction, content, toPost) => {
                 .setDescription("Failed to communicate with game servers.")
                 .setColor('#ff0000');
                 
-            if (interaction.deferred || interaction.replied) {
-                await interaction.editReply({ embeds: [errorEmbed] });
-            }
+            await interaction.editReply({ embeds: [errorEmbed] });
         } catch (replyError) {
             console.error('Failed to send PostToServer error:', replyError);
         }
@@ -624,11 +619,7 @@ const setUser = async(action, user, param, plrMsg) => {
             const data = res.data.data[0];
             if (!data){
                 const errorMsg = `User doesn't exist.`;
-                if (plrMsg.editReply) {
-                    await plrMsg.editReply({content: errorMsg});
-                } else {
-                    await plrMsg.edit({content: errorMsg});
-                }
+                await plrMsg.editReply({content: errorMsg});
                 return;
             }
             plr.Name = data.name;
@@ -638,11 +629,7 @@ const setUser = async(action, user, param, plrMsg) => {
             const msg = res && res.message;
             if(msg){
                 const errorMsg = msg;
-                if (plrMsg.editReply) {
-                    await plrMsg.editReply({content: errorMsg});
-                } else {
-                    await plrMsg.edit({content: errorMsg});
-                }
+                await plrMsg.editReply({content: errorMsg});
                 return;
             }
             const data = res.data;
@@ -650,7 +637,6 @@ const setUser = async(action, user, param, plrMsg) => {
             plr.Id = data.id;
         }
 
-        let editFunc = plrMsg.deferred || plrMsg.replied ? "editReply" : "edit";
         let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
         
         const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
@@ -670,7 +656,7 @@ const setUser = async(action, user, param, plrMsg) => {
             console.error('Avatar fetch error:', avatarError);
         }
 
-        const msg = await plrMsg[editFunc]({
+        await plrMsg.editReply({
             embeds: [embedCheck],
             content: " ",
         });
@@ -687,7 +673,7 @@ const setUser = async(action, user, param, plrMsg) => {
             if (profileData.isBanned) {
                 const e = new EmbedBuilder(embedCheck.data);
                 e.setDescription(`User is terminated from Roblox`);
-                await plrMsg[editFunc]({
+                await plrMsg.editReply({
                     embeds: [e]
                 });
             } else {
@@ -717,7 +703,7 @@ const setUser = async(action, user, param, plrMsg) => {
             console.error('User data fetch error:', dataError);
             const errorEmbed = new EmbedBuilder(embedCheck.data);
             errorEmbed.setDescription('Failed to fetch user data from Roblox');
-            await plrMsg[editFunc]({
+            await plrMsg.editReply({
                 embeds: [errorEmbed]
             });
         }
@@ -727,11 +713,7 @@ const setUser = async(action, user, param, plrMsg) => {
         
         try {
             const errorMsg = 'An error occurred while fetching user information.';
-            if (plrMsg.editReply) {
-                await plrMsg.editReply({content: errorMsg});
-            } else {
-                await plrMsg.edit({content: errorMsg});
-            }
+            await plrMsg.editReply({content: errorMsg});
         } catch (replyError) {
             console.error('Failed to send setUser error:', replyError);
         }
