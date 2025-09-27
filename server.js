@@ -404,6 +404,8 @@ client.on("clientReady", async() => {
                 }
                 return;
             }
+            
+            await interaction.deferReply();
 
             const sEmbed = new EmbedBuilder()
                 .setDescription("Waiting for server...")
@@ -735,7 +737,7 @@ const setUser = async(action, user, param, plrMsg) => {
         ["Id"]: "1",
     }
 
-    console.log("setUser", action, user, param, plrMsg);
+    console.log("setUser", action, user, param);
 
     try {
         if (!isNb(user)) {
