@@ -172,22 +172,20 @@ const GetFuncFromCmd = (cmd) => {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
-    if (interaction.isChatInputCommand()) {
+    if (interaction.isChatInputCommand() || interaction.isButton()) {
         try {
             await interaction.deferReply();
         } catch (error) {
-            console.error('Failed to defer reply:', error);
+            console.error('FATAL: Failed to defer - interaction expired:', error.message);
             return;
         }
     }
 
     if (interaction.member.id !== '259085441448280064') {
         try {
-            if (interaction.deferred) {
-                await interaction.editReply({ 
-                    content: "You don't have permission to use this command."
-                });
-            }
+            await interaction.editReply({ 
+                content: "You don't have permission to use this command."
+            });
         } catch (error) {
             console.error('Permission reply error:', error.message);
         }
@@ -196,10 +194,6 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (interaction.isButton()) {
         try {
-            if (!interaction.deferred) {
-                await interaction.deferReply();
-            }
-            
             if (interaction.message.channel.id != 871456134714765332) {
                 await interaction.deleteReply();
                 return;
@@ -241,7 +235,7 @@ client.on(Events.InteractionCreate, async interaction => {
     setImmediate(() => {
         try {
             client.channels.cache.get('975495174413242378')?.send({
-                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
+                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used **${cmd}**`)]
             });
         } catch (error) {
             console.error('Logging error:', error);
@@ -272,13 +266,8 @@ client.on(Events.InteractionCreate, async interaction => {
         }
 
         if (cmd === 'info') {
-            try {
-                const e = new EmbedBuilder().setTitle("Information");
-                await interaction.editReply({ embeds: [e] });
-            } catch (error) {
-                console.error('Info command error:', error);
-                await interaction.editReply({ content: 'An error occurred while fetching game info.' });
-            }
+            const e = new EmbedBuilder().setTitle("Information");
+            await interaction.editReply({ embeds: [e] });
             return;
         }
 
@@ -295,13 +284,11 @@ client.on(Events.InteractionCreate, async interaction => {
                 const sid = args.getString("server");
                 const getLogs = args.getBoolean("chat");
                 sEmbed.setTitle(`Server: ${sid}`);
-                            
-                const serverPost = {
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'server',
                     server: sid,
                     getLogs: (getLogs === true ? "chat" : false),
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, serverPost);
+                });
                 break;
                 
             case "servers":
@@ -313,29 +300,25 @@ client.on(Events.InteractionCreate, async interaction => {
                 const consoleSid = args.getString("server");
                 const consoleStr = args.getString("input");
                 sEmbed.setTitle(`Server: ${consoleSid}`);
-                                    
-                const consolePost = {
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'console',
                     server: consoleSid,
                     input: consoleStr,
                     all: args.getBoolean("all"),
                     user: interaction.member.nickname,
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, consolePost);
+                });
                 break;
                 
             case 'chat':
                 const chatSid = args.getString("server");
                 const chatStr = args.getString("text");
                 sEmbed.setTitle(`Server: ${chatSid}`);
-                                
-                const chatPost = {
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'chat',
                     server: chatSid,
                     message: chatStr,
                     user: interaction.member.nickname,
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, chatPost);
+                });
                 break;
                 
             case "ban":
@@ -347,12 +330,11 @@ client.on(Events.InteractionCreate, async interaction => {
                 break;
                 
             case "datastores":
-                sEmbed.setTitle(`Players DataStores`);                    
-                const datastorePost = {
+                sEmbed.setTitle(`Players DataStores`);
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'datastores',
                     user: interaction.member.nickname,
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, datastorePost);
+                });
                 break;
                 
             default:
@@ -361,15 +343,10 @@ client.on(Events.InteractionCreate, async interaction => {
         
     } catch (error) {
         console.error('Interaction error:', error);
-        
         try {
-            if (interaction.deferred) {
-                await interaction.editReply({ 
-                    content: 'An error occurred while processing your command.' 
-                });
-            }
-        } catch (replyError) {
-            console.error('Failed to send error reply:', replyError.message);
+            await interaction.editReply({ content: 'Command failed.' });
+        } catch (e) {
+            console.error('Failed to send error reply:', e);
         }
     }
 });
