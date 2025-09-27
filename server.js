@@ -174,34 +174,17 @@ const GetFuncFromCmd = (cmd) => {
 client.on(Events.InteractionCreate, async interaction => {
     if (interaction.isChatInputCommand() || interaction.isButton()) {
         try {
-            await Promise.race([
-                interaction.deferReply(),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Defer timeout')), 1000)
-                )
-            ]);
+            await interaction.deferReply();
         } catch (error) {
-            console.error(`FATAL: Failed to defer - ${error.message}`);
-            try {
-                if (!interaction.replied && !interaction.deferred) {
-                    await interaction.reply({ 
-                        content: 'Processing...', 
-                        ephemeral: true 
-                    });
-                }
-            } catch (fallbackError) {
-                console.error('Fallback reply also failed:', fallbackError.message);
-                return;
-            }
+            console.error('FATAL: Failed to defer - interaction expired:', error.message);
+            return;
         }
     }
 
     if (interaction.member.id !== '259085441448280064') {
         try {
-            const method = interaction.deferred ? 'editReply' : 'reply';
-            await interaction[method]({ 
-                content: "You don't have permission to use this command.",
-                ephemeral: !interaction.deferred
+            await interaction.editReply({ 
+                content: "You don't have permission to use this command."
             });
         } catch (error) {
             console.error('Permission reply error:', error.message);
@@ -212,12 +195,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.isButton()) {
         try {
             if (interaction.message.channel.id != 871456134714765332) {
-                const method = interaction.deferred ? 'editReply' : 'reply';
-                if (interaction.deferred) {
-                    await interaction.deleteReply();
-                } else {
-                    await interaction[method]({ content: 'Invalid channel', ephemeral: true });
-                }
+                await interaction.deleteReply();
                 return;
             }
 
@@ -238,13 +216,10 @@ client.on(Events.InteractionCreate, async interaction => {
                         .setDescription("An error occurred while processing the ban.")
                         .setColor('#ff0000');
                     
-                    const method = interaction.deferred ? 'editReply' : 'reply';
-                    await interaction[method]({ embeds: [errorEmbed] });
+                    await interaction.editReply({ embeds: [errorEmbed] });
                 }
             } else {
-                if (interaction.deferred) {
-                    await interaction.deleteReply();
-                }
+                await interaction.deleteReply();
             }
         } catch (error) {
             console.error('Button interaction error:', error);
@@ -268,8 +243,6 @@ client.on(Events.InteractionCreate, async interaction => {
     });
 
     try {
-        const method = interaction.deferred ? 'editReply' : 'reply';
-
         if (cmd === 'help') {
             const sEmbed = new EmbedBuilder()
                 .setTitle('List of commands')
@@ -288,13 +261,13 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             }
             sEmbed.setDescription(str);
-            await interaction[method]({ embeds: [sEmbed] });
+            await interaction.editReply({ embeds: [sEmbed] });
             return;
         }
 
         if (cmd === 'info') {
             const e = new EmbedBuilder().setTitle("Information");
-            await interaction[method]({ embeds: [e] });
+            await interaction.editReply({ embeds: [e] });
             return;
         }
 
@@ -365,23 +338,18 @@ client.on(Events.InteractionCreate, async interaction => {
                 break;
                 
             default:
-                await interaction[method]({ content: 'Unknown command' });
+                await interaction.editReply({ content: 'Unknown command' });
         }
         
     } catch (error) {
         console.error('Interaction error:', error);
         try {
-            const method = interaction.deferred ? 'editReply' : 'reply';
-            await interaction[method]({ 
-                content: 'Command failed.', 
-                ephemeral: !interaction.deferred 
-            });
+            await interaction.editReply({ content: 'Command failed.' });
         } catch (e) {
             console.error('Failed to send error reply:', e);
         }
     }
 });
-
 
 
 client.on(Events.MessageCreate, async(msg) => {
