@@ -172,12 +172,20 @@ const GetFuncFromCmd = (cmd) => {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
+    if (interaction.isChatInputCommand()) {
+        try {
+            await interaction.deferReply();
+        } catch (error) {
+            console.error('Failed to defer reply:', error);
+            return;
+        }
+    }
+
     if (interaction.member.id !== '259085441448280064') {
         try {
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ 
-                    content: "You don't have permission to use this command.",
-                    ephemeral: true 
+            if (interaction.deferred) {
+                await interaction.editReply({ 
+                    content: "You don't have permission to use this command."
                 });
             }
         } catch (error) {
@@ -188,7 +196,9 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (interaction.isButton()) {
         try {
-            await interaction.deferReply();
+            if (!interaction.deferred) {
+                await interaction.deferReply();
+            }
             
             if (interaction.message.channel.id != 871456134714765332) {
                 await interaction.deleteReply();
@@ -219,16 +229,6 @@ client.on(Events.InteractionCreate, async interaction => {
             }
         } catch (error) {
             console.error('Button interaction error:', error);
-            if (!interaction.replied && !interaction.deferred) {
-                try {
-                    await interaction.reply({ 
-                        content: 'An error occurred.',
-                        ephemeral: true 
-                    });
-                } catch (e) {
-                    console.error('Could not send error reply:', e.message);
-                }
-            }
         }
         return;
     }
@@ -238,13 +238,15 @@ client.on(Events.InteractionCreate, async interaction => {
     const cmd = interaction.commandName.toLowerCase();
     const args = interaction.options;
 
-    try {
-        client.channels.cache.get('975495174413242378')?.send({
-            embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
-        });
-    } catch (error) {
-        console.error('Logging error:', error);
-    }
+    setImmediate(() => {
+        try {
+            client.channels.cache.get('975495174413242378')?.send({
+                embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
+            });
+        } catch (error) {
+            console.error('Logging error:', error);
+        }
+    });
 
     try {
         if (cmd === 'help') {
@@ -265,22 +267,20 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             }
             sEmbed.setDescription(str);
-            await interaction.reply({ embeds: [sEmbed] });
+            await interaction.editReply({ embeds: [sEmbed] });
             return;
         }
 
         if (cmd === 'info') {
-            await interaction.reply({ content: 'Fetching info...' });
             try {
-                GetFuncFromCmd(cmd)(interaction);
+                const e = new EmbedBuilder().setTitle("Information");
+                await interaction.editReply({ embeds: [e] });
             } catch (error) {
                 console.error('Info command error:', error);
                 await interaction.editReply({ content: 'An error occurred while fetching game info.' });
             }
             return;
         }
-        
-        await interaction.deferReply();
 
         const sEmbed = new EmbedBuilder()
             .setDescription("Waiting for server...")
@@ -363,23 +363,17 @@ client.on(Events.InteractionCreate, async interaction => {
         console.error('Interaction error:', error);
         
         try {
-            if (!interaction.replied) {
-                if (interaction.deferred) {
-                    await interaction.editReply({ 
-                        content: 'An error occurred while processing your command.' 
-                    });
-                } else {
-                    await interaction.reply({ 
-                        content: 'An error occurred while processing your command.',
-                        ephemeral: true 
-                    });
-                }
+            if (interaction.deferred) {
+                await interaction.editReply({ 
+                    content: 'An error occurred while processing your command.' 
+                });
             }
         } catch (replyError) {
             console.error('Failed to send error reply:', replyError.message);
         }
     }
 });
+
 
 client.on(Events.MessageCreate, async(msg) => {
     if (msg.author.bot) return;
