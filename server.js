@@ -553,11 +553,6 @@ const PlrCmd = async(interaction, plr, res) => {
     const reason = res != null ? res : "N/A";
     
     try {
-        if (!interaction.deferred && !interaction.replied) {
-            console.log("deferring reply");
-            await interaction.deferReply();
-        }
-
         if (strIsNotNb(plr)) {
             await setUser(cmd, plr, reason, interaction);
         } else {
@@ -739,6 +734,8 @@ const setUser = async(action, user, param, plrMsg) => {
         ["Name"]: "Player",
         ["Id"]: "1",
     }
+
+    console.log("setUser", action, user, param, plrMsg);
 
     try {
         if (!isNb(user)) {
