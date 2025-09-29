@@ -273,21 +273,20 @@ client.once("ready", async() => {
 
     let botId = '1070340757497577563';
     const Guilds = client.guilds.cache.map(guild => guild.id);
-    for (const [key, value] of Object.entries(Guilds)) {
-        (async() => {
-            try {
-                console.log(`Started refreshing application (/) commands in the discord server.`);
-                await rest.put(
-                    Routes.applicationGuildCommands(botId, value), {
-                        body: commands
-                    },
-                );
-                console.log(`Successfully reloaded application (/) commands in the discord server.`);
-            } catch (error) {
-                console.error(error);
-            }
-        })()
-    };
+    for (const guildId of Guilds) {
+        try {
+            console.log(`Started refreshing application (/) commands in guild ${guildId}.`);
+
+            await rest.put(
+                Routes.applicationGuildCommands(botId, guildId),
+                { body: commands },
+            );
+
+            console.log(`Successfully reloaded application (/) commands in guild ${guildId}.`);
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     // await sendGameInfo();
     // const updateMins = 60;
