@@ -899,13 +899,9 @@ client.on('interactionCreate', async interaction => {
     const cmd = interaction.commandName.toLowerCase();
     const args = interaction.options;
 
-    try {
-        client.channels.cache.get('975495174413242378')?.send({
-            embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
-        });
-    } catch (error) {
-        console.error('Logging error:', error);
-    }
+    client.channels.cache.get('975495174413242378')?.send({
+        embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
+    });
 
     try {
         if (cmd === 'help') {
@@ -941,83 +937,86 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        await interaction.deferReply();
+        // await interaction.deferReply();
 
         const sEmbed = new EmbedBuilder()
             .setDescription("Waiting for server...")
             .setColor('#5865f2');
 
-        switch (cmd) {
-            case 'check':
+        const handlers = {
+            check: async (interaction, args) => {
                 await PlrCmd(interaction, args.getString("player"));
-                break;
-                
-            case "server":
+            },
+
+            server: async (interaction, args, sEmbed) => {
                 const sid = args.getString("server");
                 const getLogs = args.getBoolean("chat");
+
                 sEmbed.setTitle(`Server: ${sid}`);
-                            
-                const serverPost = {
+
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'server',
                     server: sid,
-                    getLogs: (getLogs === true ? "chat" : false),
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, serverPost);
-                break;
-                
-            case "servers":
+                    getLogs: getLogs ? "chat" : false,
+                });
+            },
+
+            servers: async (interaction, args, sEmbed) => {
                 sEmbed.setTitle('List of servers');
                 await PostToServer(interaction, { embeds: [sEmbed] }, { action: "servers" });
-                break;
-                
-            case 'console':
-                const consoleSid = args.getString("server");
-                const consoleStr = args.getString("input");
-                sEmbed.setTitle(`Server: ${consoleSid}`);
-                                    
-                const consolePost = {
+            },
+
+            console: async (interaction, args, sEmbed) => {
+                const sid = args.getString("server");
+                const input = args.getString("input");
+
+                sEmbed.setTitle(`Server: ${sid}`);
+
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'console',
-                    server: consoleSid,
-                    input: consoleStr,
+                    server: sid,
+                    input,
                     all: args.getBoolean("all"),
                     user: interaction.member.nickname,
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, consolePost);
-                break;
-                
-            case 'chat':
-                const chatSid = args.getString("server");
-                const chatStr = args.getString("text");
-                sEmbed.setTitle(`Server: ${chatSid}`);
-                                
-                const chatPost = {
+                });
+            },
+
+            chat: async (interaction, args, sEmbed) => {
+                const sid = args.getString("server");
+                const message = args.getString("text");
+
+                sEmbed.setTitle(`Server: ${sid}`);
+
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'chat',
-                    server: chatSid,
-                    message: chatStr,
+                    server: sid,
+                    message,
                     user: interaction.member.nickname,
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, chatPost);
-                break;
-                
-            case "ban":
+                });
+            },
+
+            ban: async (interaction, args) => {
                 await PlrCmd(interaction, args.getString("player"), args.getString("arg"));
-                break;
-                
-            case "unban":
+            },
+
+            unban: async (interaction, args) => {
                 await PlrCmd(interaction, args.getString("player"));
-                break;
-                
-            case "datastores":
-                sEmbed.setTitle(`Players DataStores`);                    
-                const datastorePost = {
+            },
+
+            datastores: async (interaction, args, sEmbed) => {
+                sEmbed.setTitle(`Players DataStores`);
+
+                await PostToServer(interaction, { embeds: [sEmbed] }, {
                     action: 'datastores',
                     user: interaction.member.nickname,
-                };
-                await PostToServer(interaction, { embeds: [sEmbed] }, datastorePost);
-                break;
-                
-            default:
-                await interaction.editReply({ content: 'Unknown command' });
+                });
+            },
+        };
+
+        if (handlers[cmd]) {
+            await handlers[cmd](interaction, args, sEmbed);
+        } else {
+            await interaction.editReply({ content: 'Unknown command' });
         }
         
     } catch (error) {
