@@ -344,10 +344,6 @@ const PlrCmd = async(interaction, plr, res) => {
     const reason = res != null ? res : "N/A";
     
     try {
-        // if (!interaction.deferred && !interaction.replied) {
-        //     interaction.deferReply();
-        // }
-
         if (strIsNotNb(plr)) {
             console.log("setting user");
             setUser(cmd, plr, reason, interaction);
@@ -423,10 +419,6 @@ const PostToServer = async(interaction, content, toPost) => {
     console.log("Posting to server");
 
     try {
-        if (!interaction.deferred && !interaction.replied) {
-            await interaction.deferReply();
-        }
-
         const m = await interaction.editReply(content);
         console.log("Message posted:", m.id);
 
@@ -572,7 +564,6 @@ const setUser = async(action, user, param, plrMsg) => {
             plr.Id = data.id;
         }
 
-        let editFunc = plrMsg.deferred || plrMsg.replied ? "editReply" : "reply";
         let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
         
         const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
@@ -596,7 +587,7 @@ const setUser = async(action, user, param, plrMsg) => {
         console.log(plrMsg.constructor.name);
         console.log(plrMsg.deferred, plrMsg.replied);
 
-        await plrMsg[editFunc]({
+        await plrMsg.editReply({
             embeds: [embedCheck],
             content: " ",
         });
@@ -613,9 +604,7 @@ const setUser = async(action, user, param, plrMsg) => {
             if (profileData.isBanned) {
                 const e = new EmbedBuilder(embedCheck.data);
                 e.setDescription(`User is terminated from Roblox`);
-                await plrMsg[editFunc]({
-                    embeds: [e]
-                });
+                await plrMsg.editReply({ embeds: [e] });
             } else {
                 let friendCount = friend.data.count;
                 let friendStr;
@@ -643,9 +632,7 @@ const setUser = async(action, user, param, plrMsg) => {
             console.error('User data fetch error:', dataError);
             const errorEmbed = new EmbedBuilder(embedCheck.data);
             errorEmbed.setDescription('Failed to fetch user data from Roblox');
-            await plrMsg[editFunc]({
-                embeds: [errorEmbed]
-            });
+            await plrMsg.editReply({ embeds: [errorEmbed] });
         }
         
     } catch (error) {
@@ -851,9 +838,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (interaction.isButton()) {
-        try {
-            await interaction.deferReply();
-            
+        try {            
             if (interaction.message.channel.id != 871456134714765332) {
                 await interaction.deleteReply();
                 return;
@@ -929,6 +914,10 @@ client.on(Events.InteractionCreate, async interaction => {
             return;
         }
 
+        if (plrMsg.isChatInputCommand?.() && !plrMsg.deferred && !plrMsg.replied) {
+            await plrMsg.deferReply();
+        }
+
         if (cmd === 'info') {
             await interaction.reply({ content: 'Fetching info...' });
             try {
@@ -939,8 +928,6 @@ client.on(Events.InteractionCreate, async interaction => {
             }
             return;
         }
-
-        // await interaction.deferReply();
 
         const sEmbed = new EmbedBuilder()
             .setDescription("Waiting for server...")
