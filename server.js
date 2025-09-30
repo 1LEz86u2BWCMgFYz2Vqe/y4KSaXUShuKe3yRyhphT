@@ -4,6 +4,7 @@ const express = require('express');
 const axios = require('axios');
 const {
 	Client,
+    Events,
 	GatewayIntentBits,
 	Partials,
 	EmbedBuilder,
@@ -264,20 +265,20 @@ const sendGameInfo = async() => {
 	}
 };
 
-client.once("ready", async() => {
-    console.log("Successfully logged in Discord bot.");
+client.once(Events.ClientReady, readyClient => {
+    console.log(`Successfully logged in Discord bot. (${readyClient.user.tag})`);
     client.user.setPresence({
         activities: [{ name: 'ROBLOX', type: ActivityType.Playing }],
         status: 'online',
     });
-    
+
     let botId = '1070340757497577563';
     const Guilds = client.guilds.cache.map(guild => guild.id);
     for (const guildId of Guilds) {
         try {
             console.log(`Started refreshing application (/) commands in guild ${guildId}.`);
 
-            await rest.put(
+            rest.put(
                 Routes.applicationGuildCommands(botId, guildId),
                 { body: commands },
             );
@@ -832,7 +833,7 @@ client.on("threadCreate", async(thread) => {
     }
 });
 
-client.on('interactionCreate', async interaction => {
+client.on(Events.InteractionCreate, async interaction => {
     if (interaction.member.id !== '259085441448280064') {
         try {
             if (!interaction.replied && !interaction.deferred) {
