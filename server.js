@@ -572,7 +572,7 @@ const setUser = async(action, user, param, plrMsg) => {
             plr.Id = data.id;
         }
 
-        let editFunc = plrMsg.deferred || plrMsg.replied ? "editReply" : "edit";
+        let editFunc = plrMsg.deferred || plrMsg.replied ? "editReply" : "reply";
         let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
         
         const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
