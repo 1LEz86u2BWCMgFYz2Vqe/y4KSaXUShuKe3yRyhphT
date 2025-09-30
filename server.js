@@ -23,7 +23,6 @@ const client = new Client({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.GuildMessageReactions,
 		GatewayIntentBits.GuildMembers,
-		GatewayIntentBits.MessageContent,
 	],
 	partials: [
         Partials.Message, 
@@ -151,6 +150,32 @@ const commands = [{
     {
         name: 'info',
         description: 'Get information about the game.',
+        func: (msg) => {
+            const e = new EmbedBuilder()
+                .setTitle("Information")
+            // axios.all([axios.get(`https://games.roblox.com/v1/games?universeIds=${gInfos.UID}`),
+            //         axios.get(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${gInfos.UID}&size=512x512&format=Png&isCircular=false`),
+            //     ])
+            //     .then(axios.spread((gameinfo, logo) => {
+            //         e.setThumbnail(logo.data.data[0].imageUrl);
+            //         let data = gameinfo.data.data[0];
+            //         let str = "";
+            //         Object.entries(data).map(([k, v]) => {
+            //             if (v !== null) {
+            //                 str += `${k} **${v}**\n`
+            //             }
+            //         });
+            //         e.setTitle(data.name)
+            //         e.setDescription(str)
+            //         msg.editReply({
+            //             embeds: [e]
+            //         });
+            //         return;
+            //     }))
+            msg.reply({
+                embeds: [e]
+            });
+        }
     },
 ];
 
@@ -321,7 +346,7 @@ const PlrCmd = async(interaction, plr, res) => {
     try {
         if (strIsNotNb(plr)) {
             console.log("setting user");
-            await setUser(cmd, plr, reason, interaction);
+            setUser(cmd, plr, reason, interaction);
         } else {
             console.log("expecting a response (uid or name)");
             const row = new ActionRowBuilder()
@@ -381,8 +406,7 @@ const PlrCmd = async(interaction, plr, res) => {
             }
         }
     } catch (error) {
-        console.error('PlrCmd error:', error);
-        await interaction.editReply({ content: 'An error occurred: ' + error.message });
+        await interaction.editReply({ content: error });
     }
 };
 
@@ -430,7 +454,9 @@ const PostToServer = async(interaction, content, toPost) => {
                 .setDescription("Failed to communicate with game servers.")
                 .setColor('#ff0000');
                 
-            await interaction.editReply({ embeds: [errorEmbed] });
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            }
         } catch (replyError) {
             console.error('Failed to send PostToServer error:', replyError);
         }
@@ -451,7 +477,7 @@ const updateUL = async() => {
 };
 
 var queue = [];
-const cmds = ["ban", "unban", "kick", "check", "help", "server", "servers", "info", "chat", "console", "datastores"];
+const cmds = ["ban", "unban", "kick", "check", "help", "server", "servers", "info", "chat"];
 const prefix = "!";
 
 function FoundCmd(cmd) {
@@ -508,7 +534,11 @@ const setUser = async(action, user, param, interaction) => {
             const data = res.data.data[0];
             if (!data){
                 const errorMsg = `User doesn't exist.`;
-                await interaction.editReply({content: errorMsg});
+                if (interaction.editReply) {
+                    await interaction.editReply({content: errorMsg});
+                } else {
+                    await interaction.edit({content: errorMsg});
+                }
                 return;
             }
             plr.Name = data.name;
@@ -518,7 +548,11 @@ const setUser = async(action, user, param, interaction) => {
             const msg = res && res.message;
             if(msg){
                 const errorMsg = msg;
-                await interaction.editReply({content: errorMsg});
+                if (interaction.editReply) {
+                    await interaction.editReply({content: errorMsg});
+                } else {
+                    await interaction.edit({content: errorMsg});
+                }
                 return;
             }
             const data = res.data;
@@ -598,7 +632,11 @@ const setUser = async(action, user, param, interaction) => {
         
         try {
             const errorMsg = 'An error occurred while fetching user information.';
-            await interaction.editReply({content: errorMsg});
+            if (interaction.editReply) {
+                await interaction.editReply({content: errorMsg});
+            } else {
+                await interaction.edit({content: errorMsg});
+            }
         } catch (replyError) {
             console.error('Failed to send setUser error:', replyError);
         }
@@ -616,11 +654,7 @@ async function determineType(action, message, args) {
         });
         return
     } else if (action === 'info') {
-        const e = new EmbedBuilder()
-            .setTitle("Information");
-        message.reply({
-            embeds: [e]
-        });
+        GetFuncFromCmd(action)(message);
         return
     } else if (action === 'chat') {
         const sid = args[1];
@@ -654,42 +688,6 @@ async function determineType(action, message, args) {
             msg: `${m.channel.id} ${m.id}`,
         })
         return
-    } else if (action === 'console') {
-        if (isEmpty(args) || args.length <= 2) return;
-        const sid = args[1];
-        const input = args.slice(2).join(' ');
-        const e = new EmbedBuilder()
-            .setTitle(`Server: ${sid}`)
-            .setColor('#5865f2')
-            .setDescription('Waiting for server');
-        let member = message.guild.members.cache.get(message.author.id);
-        let nickname = member ? member.displayName : null;
-        let m = await message.reply({
-            embeds: [e]
-        });
-        queue.push({
-            action: 'console',
-            server: sid,
-            msg: `${m.channel.id} ${m.id}`,
-            input: input,
-            user: nickname,
-        });
-        return;
-    } else if (action === 'datastores') {
-        const e = new EmbedBuilder()
-            .setTitle('Players DataStores')
-            .setDescription('Waiting for server');
-        let member = message.guild.members.cache.get(message.author.id);
-        let nickname = member ? member.displayName : null;
-        let m = await message.reply({
-            embeds: [e]
-        });
-        queue.push({
-            action: 'datastores',
-            msg: `${m.channel.id} ${m.id}`,
-            user: nickname,
-        });
-        return;
     }
 
     if (isEmpty(args) || args.length <= 1) return;
@@ -789,7 +787,7 @@ client.on("messageCreate", async(msg) => {
     const cmd = args[0].substring(1);
 
     if (msg.content.startsWith(prefix) && FoundCmd(cmd)) {
-        if (msg.author.id === '259085441448280064') { 
+        if (msg.author.id === '259085441448280064') { //msg.member.roles.cache.has('879382602576986162')){ 
             determineType(cmd.toLowerCase(), msg, args)
         } else {
             msg.reply("You don't have permission to use this command.");
@@ -803,7 +801,6 @@ client.on("messageCreate", async(msg) => {
 
     // if (msg.channel.id === '975492551224213514') updateUL();
 });
-
 client.on("threadCreate", async(thread) => {
     if (thread.parentId === "1406056999929774111"){
         try {
@@ -833,13 +830,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (interaction.isButton()) {
-        if (['yes', 'no'].includes(interaction.customId)) {
-            return;
-        }
-        
-        try {
-            await interaction.deferReply();
-            
+        try {            
             if (interaction.message.channel.id != 871456134714765332) {
                 await interaction.deleteReply();
                 return;
@@ -915,16 +906,18 @@ client.on(Events.InteractionCreate, async interaction => {
             return;
         }
 
-        if (!interaction.deferred && !interaction.replied) {
+        if (interaction.isChatInputCommand?.() && !interaction.deferred && !interaction.replied) {
             await interaction.deferReply();
         }
 
         if (cmd === 'info') {
-            const e = new EmbedBuilder()
-                .setTitle("Information")
-                .setColor('#5865f2')
-                .setDescription("Game information");
-            await interaction.editReply({ embeds: [e] });
+            await interaction.reply({ content: 'Fetching info...' });
+            try {
+                GetFuncFromCmd(cmd)(interaction);
+            } catch (error) {
+                console.error('Info command error:', error);
+                await interaction.editReply({ content: 'An error occurred while fetching game info.' });
+            }
             return;
         }
 
