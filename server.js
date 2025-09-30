@@ -344,13 +344,15 @@ const PlrCmd = async(interaction, plr, res) => {
     const reason = res != null ? res : "N/A";
     
     try {
-        if (!interaction.deferred && !interaction.replied) {
-            await interaction.deferReply();
-        }
+        // if (!interaction.deferred && !interaction.replied) {
+        //     interaction.deferReply();
+        // }
 
         if (strIsNotNb(plr)) {
-            await setUser(cmd, plr, reason, interaction);
+            console.log("setting user");
+            setUser(cmd, plr, reason, interaction);
         } else {
+            console.log("expecting a response (uid or name)");
             const row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -409,14 +411,10 @@ const PlrCmd = async(interaction, plr, res) => {
         }
     } catch (error) {
         console.error('PlrCmd error:', error);
-        
         const errorEmbed = new EmbedBuilder()
-            .setDescription("An error occurred while processing the player command.")
+            .setDescription(error)
             .setColor('#ff0000');
-            
-        if (interaction.deferred || interaction.replied) {
-            await interaction.editReply({ embeds: [errorEmbed] });
-        }
+        await interaction.editReply({ embeds: [errorEmbed] });
     }
 };
 
