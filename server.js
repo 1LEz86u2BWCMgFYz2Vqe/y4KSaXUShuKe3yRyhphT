@@ -396,7 +396,7 @@ const PlrCmd = async(interaction, plr, res) => {
                 
             } catch (collectorError) {
                 const timeoutEmbed = new EmbedBuilder()
-                .setDescription(collectorError)
+                .setDescription(collectorError.message || 'Interaction timed out')
                 .setColor('#ff0000');
                     
                 await interaction.editReply({
@@ -406,11 +406,7 @@ const PlrCmd = async(interaction, plr, res) => {
             }
         }
     } catch (error) {
-        console.error('PlrCmd error:', error);
-        const errorEmbed = new EmbedBuilder()
-            .setDescription(error)
-            .setColor('#ff0000');
-        await interaction.editReply({ embeds: [errorEmbed] });
+        await interaction.editReply({ content: error });
     }
 };
 
@@ -514,7 +510,7 @@ function isEmpty(t) {
     return res;
 }
 
-const setUser = async(action, user, param, plrMsg) => {
+const setUser = async(action, user, param, interaction) => {
     let plr = {
         ["Name"]: "Player",
         ["Id"]: "1",
@@ -538,10 +534,10 @@ const setUser = async(action, user, param, plrMsg) => {
             const data = res.data.data[0];
             if (!data){
                 const errorMsg = `User doesn't exist.`;
-                if (plrMsg.editReply) {
-                    await plrMsg.editReply({content: errorMsg});
+                if (interaction.editReply) {
+                    await interaction.editReply({content: errorMsg});
                 } else {
-                    await plrMsg.edit({content: errorMsg});
+                    await interaction.edit({content: errorMsg});
                 }
                 return;
             }
@@ -552,10 +548,10 @@ const setUser = async(action, user, param, plrMsg) => {
             const msg = res && res.message;
             if(msg){
                 const errorMsg = msg;
-                if (plrMsg.editReply) {
-                    await plrMsg.editReply({content: errorMsg});
+                if (interaction.editReply) {
+                    await interaction.editReply({content: errorMsg});
                 } else {
-                    await plrMsg.edit({content: errorMsg});
+                    await interaction.edit({content: errorMsg});
                 }
                 return;
             }
@@ -564,7 +560,7 @@ const setUser = async(action, user, param, plrMsg) => {
             plr.Id = data.id;
         }
 
-        let modId = plrMsg.user ? plrMsg.user.id : plrMsg.mentions?.repliedUser?.id;
+        let modId = interaction.user ? interaction.user.id : interaction.mentions?.repliedUser?.id;
         
         const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
         const embedCheck = new EmbedBuilder()
@@ -583,7 +579,7 @@ const setUser = async(action, user, param, plrMsg) => {
             console.error('Avatar fetch error:', avatarError);
         }
 
-        await plrMsg.editReply({
+        await interaction.editReply({
             embeds: [embedCheck],
             content: " ",
         });
@@ -600,7 +596,7 @@ const setUser = async(action, user, param, plrMsg) => {
             if (profileData.isBanned) {
                 const e = new EmbedBuilder(embedCheck.data);
                 e.setDescription(`User is terminated from Roblox`);
-                await plrMsg.editReply({ embeds: [e] });
+                await interaction.editReply({ embeds: [e] });
             } else {
                 let friendCount = friend.data.count;
                 let friendStr;
@@ -620,7 +616,7 @@ const setUser = async(action, user, param, plrMsg) => {
                     desc: `\nJoined ${profileData.created.split('T')[0]}\n\n${friendStr}\n\n%s`,
                 };
                 
-                await PostToServer(plrMsg, {
+                await PostToServer(interaction, {
                     embeds: [embedCheck]
                 }, toPost);
             }
@@ -628,7 +624,7 @@ const setUser = async(action, user, param, plrMsg) => {
             console.error('User data fetch error:', dataError);
             const errorEmbed = new EmbedBuilder(embedCheck.data);
             errorEmbed.setDescription('Failed to fetch user data from Roblox');
-            await plrMsg.editReply({ embeds: [errorEmbed] });
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
         
     } catch (error) {
@@ -636,10 +632,10 @@ const setUser = async(action, user, param, plrMsg) => {
         
         try {
             const errorMsg = 'An error occurred while fetching user information.';
-            if (plrMsg.editReply) {
-                await plrMsg.editReply({content: errorMsg});
+            if (interaction.editReply) {
+                await interaction.editReply({content: errorMsg});
             } else {
-                await plrMsg.edit({content: errorMsg});
+                await interaction.edit({content: errorMsg});
             }
         } catch (replyError) {
             console.error('Failed to send setUser error:', replyError);
@@ -834,6 +830,10 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (interaction.isButton()) {
+         if (['yes', 'no'].includes(interaction.customId)) {
+            return;
+        }
+        
         try {            
             if (interaction.message.channel.id != 871456134714765332) {
                 await interaction.deleteReply();
