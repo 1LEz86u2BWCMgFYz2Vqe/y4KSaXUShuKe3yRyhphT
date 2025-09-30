@@ -582,7 +582,7 @@ const setUser = async(action, user, param, plrMsg) => {
         } catch (avatarError) {
             console.error('Avatar fetch error:', avatarError);
         }
-        
+
         await plrMsg.editReply({
             embeds: [embedCheck],
             content: " ",
@@ -911,7 +911,7 @@ client.on(Events.InteractionCreate, async interaction => {
         }
 
         if (interaction.isChatInputCommand?.() && !interaction.deferred && !interaction.replied) {
-            await plrMsg.deferReply();
+            await interaction.deferReply();
         }
 
         if (cmd === 'info') {
