@@ -914,7 +914,7 @@ client.on(Events.InteractionCreate, async interaction => {
             return;
         }
 
-        if (plrMsg.isChatInputCommand?.() && !plrMsg.deferred && !plrMsg.replied) {
+        if (interaction.isChatInputCommand?.() && !interaction.deferred && !interaction.replied) {
             await plrMsg.deferReply();
         }
 
