@@ -23,6 +23,7 @@ const client = new Client({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.GuildMessageReactions,
 		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.MessageContent,
 	],
 	partials: [
         Partials.Message, 
@@ -150,44 +151,8 @@ const commands = [{
     {
         name: 'info',
         description: 'Get information about the game.',
-        func: (msg) => {
-            const e = new EmbedBuilder()
-                .setTitle("Information")
-            // axios.all([axios.get(`https://games.roblox.com/v1/games?universeIds=${gInfos.UID}`),
-            //         axios.get(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${gInfos.UID}&size=512x512&format=Png&isCircular=false`),
-            //     ])
-            //     .then(axios.spread((gameinfo, logo) => {
-            //         e.setThumbnail(logo.data.data[0].imageUrl);
-            //         let data = gameinfo.data.data[0];
-            //         let str = "";
-            //         Object.entries(data).map(([k, v]) => {
-            //             if (v !== null) {
-            //                 str += `${k} **${v}**\n`
-            //             }
-            //         });
-            //         e.setTitle(data.name)
-            //         e.setDescription(str)
-            //         msg.editReply({
-            //             embeds: [e]
-            //         });
-            //         return;
-            //     }))
-            msg.reply({
-                embeds: [e]
-            });
-        }
     },
 ];
-
-
-const GetFuncFromCmd = (cmd) => {
-    for (const [key, value] of Object.entries(commands)) {
-        let func = value.func
-        if (value.name === cmd && func) {
-            return func
-        }
-    }
-}
 
 const startApp = async() => {
     let promise = client.login(token);
@@ -196,7 +161,6 @@ const startApp = async() => {
         console.error("Discord bot login | " + error);
         process.exit(1);
     });
-
 }
 startApp();
     
@@ -339,14 +303,54 @@ client.once(Events.ClientReady, readyClient => {
     });
 });
 
-const PlrCmd = async(interaction, plr, res) => {
-    const cmd = interaction.commandName;
+// Helper to create a reply/edit wrapper for both interaction and message
+const createReplyInterface = (source) => {
+    const isInteraction = source.isCommand?.() || source.isChatInputCommand?.();
+    
+    return {
+        reply: async (options) => {
+            if (isInteraction) {
+                if (source.deferred) {
+                    return await source.editReply(options);
+                } else if (!source.replied) {
+                    return await source.reply(options);
+                } else {
+                    return await source.editReply(options);
+                }
+            } else {
+                return await source.reply(options);
+            }
+        },
+        edit: async (options) => {
+            if (isInteraction) {
+                return await source.editReply(options);
+            } else {
+                // For messages, we need to fetch the reply first
+                if (source.lastReply) {
+                    return await source.lastReply.edit(options);
+                }
+                return null;
+            }
+        },
+        defer: async () => {
+            if (isInteraction && !source.deferred && !source.replied) {
+                await source.deferReply();
+            }
+        }
+    };
+};
+
+const PlrCmd = async(source, plr, res) => {
+    const reply = createReplyInterface(source);
+    const cmd = source.commandName || source.cmd;
     const reason = res != null ? res : "N/A";
     
     try {
+        await reply.defer();
+        
         if (strIsNotNb(plr)) {
             console.log("setting user");
-            setUser(cmd, plr, reason, interaction);
+            await setUser(cmd, plr, reason, source);
         } else {
             console.log("expecting a response (uid or name)");
             const row = new ActionRowBuilder()
@@ -365,17 +369,21 @@ const PlrCmd = async(interaction, plr, res) => {
                 .setDescription(`Is "${plr}" a UserId?`)
                 .setColor('#5865f2');
 
-            await interaction.editReply({
+            await reply.edit({
                 embeds: [embed],
                 components: [row]
             });
 
             const filter = (i) => {
-                return i.user.id === interaction.user.id && ['yes', 'no'].includes(i.customId);
+                const userId = source.user?.id || source.author?.id;
+                return i.user.id === userId && ['yes', 'no'].includes(i.customId);
             };
 
             try {
-                const response = await interaction.channel.awaitMessageComponent({ 
+                const interaction = source.isCommand?.() || source.isChatInputCommand?.() ? source : null;
+                const channel = source.channel;
+                
+                const response = await channel.awaitMessageComponent({ 
                     filter, 
                     time: 30*1e3, 
                 });
@@ -386,36 +394,37 @@ const PlrCmd = async(interaction, plr, res) => {
                     .setDescription("Waiting for server...")
                     .setColor('#5865f2');
 
-                await interaction.editReply({
+                await reply.edit({
                     embeds: [e],
                     components: []
                 });
 
                 const userInput = response.customId === "yes" ? Number(plr) : plr;
-                await setUser(cmd, userInput, reason, interaction);
+                await setUser(cmd, userInput, reason, source);
                 
             } catch (collectorError) {
                 const timeoutEmbed = new EmbedBuilder()
-                .setDescription(collectorError.message || 'Interaction timed out')
-                .setColor('#ff0000');
+                    .setDescription(collectorError.message || 'Interaction timed out')
+                    .setColor('#ff0000');
                     
-                await interaction.editReply({
+                await reply.edit({
                     embeds: [timeoutEmbed],
                     components: []
                 });
             }
         }
     } catch (error) {
-        await interaction.editReply({ content: error });
+        console.error('PlrCmd error:', error);
+        await reply.edit({ content: 'An error occurred: ' + error.message });
     }
 };
 
-
-const PostToServer = async(interaction, content, toPost) => {
+const PostToServer = async(source, content, toPost) => {
     console.log("Posting to server");
+    const reply = createReplyInterface(source);
 
     try {
-        const m = await interaction.editReply(content);
+        const m = await reply.edit(content);
         console.log("Message posted:", m.id);
 
         queue.push({
@@ -454,15 +463,12 @@ const PostToServer = async(interaction, content, toPost) => {
                 .setDescription("Failed to communicate with game servers.")
                 .setColor('#ff0000');
                 
-            if (interaction.deferred || interaction.replied) {
-                await interaction.editReply({ embeds: [errorEmbed] });
-            }
+            await reply.edit({ embeds: [errorEmbed] });
         } catch (replyError) {
             console.error('Failed to send PostToServer error:', replyError);
         }
     }
 };
-
 
 const updateUL = async() => {
     updates = [];
@@ -477,7 +483,7 @@ const updateUL = async() => {
 };
 
 var queue = [];
-const cmds = ["ban", "unban", "kick", "check", "help", "server", "servers", "info", "chat"];
+const cmds = ["ban", "unban", "kick", "check", "help", "server", "servers", "info", "chat", "console", "datastores"];
 const prefix = "!";
 
 function FoundCmd(cmd) {
@@ -510,7 +516,8 @@ function isEmpty(t) {
     return res;
 }
 
-const setUser = async(action, user, param, interaction) => {
+const setUser = async(action, user, param, source) => {
+    const reply = createReplyInterface(source);
     let plr = {
         ["Name"]: "Player",
         ["Id"]: "1",
@@ -534,11 +541,7 @@ const setUser = async(action, user, param, interaction) => {
             const data = res.data.data[0];
             if (!data){
                 const errorMsg = `User doesn't exist.`;
-                if (interaction.editReply) {
-                    await interaction.editReply({content: errorMsg});
-                } else {
-                    await interaction.edit({content: errorMsg});
-                }
+                await reply.edit({content: errorMsg});
                 return;
             }
             plr.Name = data.name;
@@ -548,11 +551,7 @@ const setUser = async(action, user, param, interaction) => {
             const msg = res && res.message;
             if(msg){
                 const errorMsg = msg;
-                if (interaction.editReply) {
-                    await interaction.editReply({content: errorMsg});
-                } else {
-                    await interaction.edit({content: errorMsg});
-                }
+                await reply.edit({content: errorMsg});
                 return;
             }
             const data = res.data;
@@ -560,7 +559,7 @@ const setUser = async(action, user, param, interaction) => {
             plr.Id = data.id;
         }
 
-        let modId = interaction.user ? interaction.user.id : interaction.mentions?.repliedUser?.id;
+        let modId = source.user?.id || source.author?.id;
         
         const linkToProfile = `https://www.roblox.com/users/${plr.Id}/profile`;
         const embedCheck = new EmbedBuilder()
@@ -579,7 +578,7 @@ const setUser = async(action, user, param, interaction) => {
             console.error('Avatar fetch error:', avatarError);
         }
 
-        await interaction.editReply({
+        await reply.edit({
             embeds: [embedCheck],
             content: " ",
         });
@@ -596,7 +595,7 @@ const setUser = async(action, user, param, interaction) => {
             if (profileData.isBanned) {
                 const e = new EmbedBuilder(embedCheck.data);
                 e.setDescription(`User is terminated from Roblox`);
-                await interaction.editReply({ embeds: [e] });
+                await reply.edit({ embeds: [e] });
             } else {
                 let friendCount = friend.data.count;
                 let friendStr;
@@ -616,7 +615,7 @@ const setUser = async(action, user, param, interaction) => {
                     desc: `\nJoined ${profileData.created.split('T')[0]}\n\n${friendStr}\n\n%s`,
                 };
                 
-                await PostToServer(interaction, {
+                await PostToServer(source, {
                     embeds: [embedCheck]
                 }, toPost);
             }
@@ -624,7 +623,7 @@ const setUser = async(action, user, param, interaction) => {
             console.error('User data fetch error:', dataError);
             const errorEmbed = new EmbedBuilder(embedCheck.data);
             errorEmbed.setDescription('Failed to fetch user data from Roblox');
-            await interaction.editReply({ embeds: [errorEmbed] });
+            await reply.edit({ embeds: [errorEmbed] });
         }
         
     } catch (error) {
@@ -632,11 +631,7 @@ const setUser = async(action, user, param, interaction) => {
         
         try {
             const errorMsg = 'An error occurred while fetching user information.';
-            if (interaction.editReply) {
-                await interaction.editReply({content: errorMsg});
-            } else {
-                await interaction.edit({content: errorMsg});
-            }
+            await reply.edit({content: errorMsg});
         } catch (replyError) {
             console.error('Failed to send setUser error:', replyError);
         }
@@ -644,50 +639,105 @@ const setUser = async(action, user, param, interaction) => {
 };
 
 async function determineType(action, message, args) {
+    const reply = createReplyInterface(message);
+    message.cmd = action;
+    
     if (action === 'help') {
         const e = new EmbedBuilder()
             .setTitle('List of commands')
-            .setColor('#5865f2')
-            .setDescription('**!servers** - Get a list of all the servers\n**!server** [id] - Get information about a server\n**!check** [plr] - Get information about a player\n**!ban** [plr] [time/reason] - Ban a player\n**!unban** [plr] - Unban a player\n**!kick** [plr] - Kick a player')
-        message.reply({
+            .setColor('#5865f2');
+            
+        let str = "";
+        for (const [key, value] of Object.entries(commands)) {
+            let newStr = `**!${value.name}**`
+            if (value.options) {
+                for (const opt of value.options) {
+                    newStr += ` {${opt.name}}`;
+                }
+            }
+            str += newStr + ` - ${value.description} \n`;
+        }
+        e.setDescription(str);
+        
+        await message.reply({
             embeds: [e]
         });
-        return
+        return;
     } else if (action === 'info') {
-        GetFuncFromCmd(action)(message);
-        return
+        const e = new EmbedBuilder()
+            .setTitle("Information");
+        await message.reply({
+            embeds: [e]
+        });
+        return;
     } else if (action === 'chat') {
         const sid = args[1];
         const e = new EmbedBuilder()
             .setTitle(`Server: ${sid}`)
             .setColor('#5865f2')
-            .setDescription('Waiting for server')
+            .setDescription('Waiting for server');
         const msg = getStrFromCmd(message);
         let member = message.guild.members.cache.get(message.author.id);
         let nickname = member ? member.displayName : null;
         let m = await message.reply({
             embeds: [e]
-        })
+        });
         queue.push({
             action: 'chat',
             server: sid,
             msg: `${m.channel.id} ${m.id}`,
             message: msg,
             user: nickname,
-        })
-        return
+        });
+        return;
     } else if (action === 'servers') {
         const e = new EmbedBuilder()
             .setTitle('List of servers')
-            .setDescription('Waiting for server')
+            .setDescription('Waiting for server');
         let m = await message.reply({
             embeds: [e]
-        })
+        });
         queue.push({
             action: 'servers',
             msg: `${m.channel.id} ${m.id}`,
-        })
-        return
+        });
+        return;
+    } else if (action === 'datastores') {
+        const e = new EmbedBuilder()
+            .setTitle('Players DataStores')
+            .setDescription('Waiting for server');
+        let member = message.guild.members.cache.get(message.author.id);
+        let nickname = member ? member.displayName : null;
+        let m = await message.reply({
+            embeds: [e]
+        });
+        queue.push({
+            action: 'datastores',
+            msg: `${m.channel.id} ${m.id}`,
+            user: nickname,
+        });
+        return;
+    } else if (action === 'console') {
+        if (isEmpty(args) || args.length <= 2) return;
+        const sid = args[1];
+        const input = args.slice(2).join(' ');
+        const e = new EmbedBuilder()
+            .setTitle(`Server: ${sid}`)
+            .setColor('#5865f2')
+            .setDescription('Waiting for server');
+        let member = message.guild.members.cache.get(message.author.id);
+        let nickname = member ? member.displayName : null;
+        let m = await message.reply({
+            embeds: [e]
+        });
+        queue.push({
+            action: 'console',
+            server: sid,
+            msg: `${m.channel.id} ${m.id}`,
+            input: input,
+            user: nickname,
+        });
+        return;
     }
 
     if (isEmpty(args) || args.length <= 1) return;
@@ -698,56 +748,64 @@ async function determineType(action, message, args) {
         const e = new EmbedBuilder()
             .setTitle(`Server: ${sid}`)
             .setColor('#5865f2')
-            .setDescription('Waiting for server')
+            .setDescription('Waiting for server');
         let m = await message.reply({
             embeds: [e]
-        })
+        });
         queue.push({
             action: 'server',
             server: sid,
             msg: `${m.channel.id} ${m.id}`,
             getLogs: getLogs,
-        })
+        });
         return;
     }
+    
     const e = new EmbedBuilder()
         .setColor('#5865f2')
-        .setDescription("Waiting for server...")
+        .setDescription("Waiting for server...");
     let botMsg = await message.reply({
         embeds: [e],
         fetchReply: true
     });
-    let banParam = "N/A"
+    
+    message.lastReply = botMsg;
+    
+    let banParam = "N/A";
 
     if (args[2] && action == "ban") {
-        banParam = strIsNotNb(args[2]) ? getStrFromCmd(message) : args[2]
+        banParam = strIsNotNb(args[2]) ? getStrFromCmd(message) : args[2];
     }
+    
     if (strIsNotNb(args[1])) {
-        setUser(action, args[1], banParam, botMsg);
+        await setUser(action, args[1], banParam, message);
     } else {
-        await botMsg.edit('0) UserId  1) Username').then(async(msg) => {
+        await botMsg.edit({
+            content: '0) UserId  1) Username',
+            embeds: []
+        }).then(async(msg) => {
             const filter = (r, u) => {
                 return numbers.includes(r.emoji.name) && u.id === message.author.id;
-            }
+            };
             const collector = await msg.createReactionCollector({
                 filter,
                 time: 30 * 1e3
             });
-            collector.on('collect', (r, u) => {
+            collector.on('collect', async (r, u) => {
                 const reaction = r;
                 const ind = numbers.findIndex((n) => {
                     return n == reaction.emoji.name;
                 });
                 if (ind == 0 || ind == 1) {
-                    msg.reactions.removeAll()
-                    setUser(action, ind == 0 ? Number(args[1]) : args[1], banParam, botMsg);
+                    await msg.reactions.removeAll();
+                    await setUser(action, ind == 0 ? Number(args[1]) : args[1], banParam, message);
                 } else {
-                    msg.edit("something went wrong");
+                    await msg.edit({content: "something went wrong", embeds: []});
                 }
-            })
+            });
             await msg.react(numbers[0]);
             await msg.react(numbers[1]);
-        })
+        });
     }
 }
 
@@ -787,8 +845,8 @@ client.on("messageCreate", async(msg) => {
     const cmd = args[0].substring(1);
 
     if (msg.content.startsWith(prefix) && FoundCmd(cmd)) {
-        if (msg.author.id === '259085441448280064') { //msg.member.roles.cache.has('879382602576986162')){ 
-            determineType(cmd.toLowerCase(), msg, args)
+        if (msg.author.id === '259085441448280064') {
+            await determineType(cmd.toLowerCase(), msg, args);
         } else {
             msg.reply("You don't have permission to use this command.");
         }
@@ -801,6 +859,7 @@ client.on("messageCreate", async(msg) => {
 
     // if (msg.channel.id === '975492551224213514') updateUL();
 });
+
 client.on("threadCreate", async(thread) => {
     if (thread.parentId === "1406056999929774111"){
         try {
@@ -830,11 +889,13 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (interaction.isButton()) {
-         if (['yes', 'no'].includes(interaction.customId)) {
+        if (['yes', 'no'].includes(interaction.customId)) {
             return;
         }
         
-        try {            
+        try {
+            await interaction.deferReply();
+            
             if (interaction.message.channel.id != 871456134714765332) {
                 await interaction.deleteReply();
                 return;
@@ -883,11 +944,13 @@ client.on(Events.InteractionCreate, async interaction => {
     const cmd = interaction.commandName.toLowerCase();
     const args = interaction.options;
 
+    // Log command usage
     client.channels.cache.get('975495174413242378')?.send({
         embeds: [new EmbedBuilder().setDescription(`<@${interaction.member.id}> used the command **${cmd}** ${Object.keys(args._hoistedOptions).length > 0 ? "with the arguments "+JSON.stringify(args._hoistedOptions) : "" }`)]
     });
 
     try {
+        // Handle help command immediately without deferring
         if (cmd === 'help') {
             const sEmbed = new EmbedBuilder()
                 .setTitle('List of commands')
@@ -910,18 +973,17 @@ client.on(Events.InteractionCreate, async interaction => {
             return;
         }
 
-        if (interaction.isChatInputCommand?.() && !interaction.deferred && !interaction.replied) {
+        // Defer reply for all other commands
+        if (!interaction.deferred && !interaction.replied) {
             await interaction.deferReply();
         }
 
         if (cmd === 'info') {
-            await interaction.reply({ content: 'Fetching info...' });
-            try {
-                GetFuncFromCmd(cmd)(interaction);
-            } catch (error) {
-                console.error('Info command error:', error);
-                await interaction.editReply({ content: 'An error occurred while fetching game info.' });
-            }
+            const e = new EmbedBuilder()
+                .setTitle("Information")
+                .setColor('#5865f2')
+                .setDescription("Game information");
+            await interaction.editReply({ embeds: [e] });
             return;
         }
 
