@@ -271,6 +271,15 @@ client.once("ready", async() => {
         status: 'online',
     });
 
+    for (const [id, guild] of client.guilds.cache) {
+        try {
+            console.log(`Leaving guild: ${guild.name} (${guild.id})`);
+            await guild.leave();
+        } catch (err) {
+            console.error(`Failed to leave guild ${guild.id}:`, err);
+        }
+    }
+
     let botId = '1070340757497577563';
     const Guilds = client.guilds.cache.map(guild => guild.id);
     for (const guildId of Guilds) {
