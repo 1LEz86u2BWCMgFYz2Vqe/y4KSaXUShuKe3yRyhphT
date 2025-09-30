@@ -582,11 +582,7 @@ const setUser = async(action, user, param, plrMsg) => {
         } catch (avatarError) {
             console.error('Avatar fetch error:', avatarError);
         }
-
-        console.log(plrMsg);
-        console.log(plrMsg.constructor.name);
-        console.log(plrMsg.deferred, plrMsg.replied);
-
+        
         await plrMsg.editReply({
             embeds: [embedCheck],
             content: " ",
